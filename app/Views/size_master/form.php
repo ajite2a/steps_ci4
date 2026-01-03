@@ -82,7 +82,6 @@
                     Create Size Master
                 <?php endif; ?>
             </h2>
-
             <?php if (session()->getFlashdata('error')): ?>
                 <div class="alert alert-danger alert-dismissible fade show" role="alert" style="margin-bottom: 1rem;">
                     <?= session()->getFlashdata('error') ?>
