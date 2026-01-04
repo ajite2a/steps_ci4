@@ -275,6 +275,46 @@ class AccessDB
         return $rows;
     }
 
+    public function getAllBrands()
+    {
+        $stmt = $this->pdo->query("SELECT * FROM brands ORDER BY brand_name ASC");
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $this->freeStmt($stmt);
+        return $rows;
+    }
+
+    public function getAllHeels()
+    {
+        $stmt = $this->pdo->query("SELECT * FROM heels ORDER BY heel_name ASC");
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $this->freeStmt($stmt);
+        return $rows;
+    }
+
+    public function getAllTags()
+    {
+        $stmt = $this->pdo->query("SELECT * FROM tags ORDER BY tag_name ASC");
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $this->freeStmt($stmt);
+        return $rows;
+    }
+
+    public function getAllCategories()
+    {
+        $stmt = $this->pdo->query("SELECT * FROM categories ORDER BY category_name ASC");
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $this->freeStmt($stmt);
+        return $rows;
+    }
+
+    public function getAllProductGroups()
+    {
+        $stmt = $this->pdo->query("SELECT * FROM product_groups ORDER BY group_name ASC");
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $this->freeStmt($stmt);
+        return $rows;
+    }
+
     public function getColorById($id)
     {
         $stmt = $this->pdo->prepare("SELECT * FROM colors WHERE id = :id");
@@ -375,6 +415,27 @@ class AccessDB
         }
 
         return $master;
+    }
+
+    public function getSizesByProductName($productName)
+    {
+        // Get the size master by product name
+        $stmt = $this->pdo->prepare("SELECT id FROM size_masters WHERE master_name = ?");
+        $stmt->execute([$productName]);
+        $master = $stmt->fetch(PDO::FETCH_ASSOC);
+        $this->freeStmt($stmt);
+
+        if (!$master) {
+            return [];
+        }
+
+        // Get all sizes for this master
+        $sizeStmt = $this->pdo->prepare("SELECT * FROM sizes WHERE size_master_id = ? ORDER BY size_value ASC");
+        $sizeStmt->execute([$master['id']]);
+        $sizes = $sizeStmt->fetchAll(PDO::FETCH_ASSOC);
+        $this->freeStmt($sizeStmt);
+
+        return $sizes;
     }
 
     public function createSizeMaster($master_name, array $sizes = [])
@@ -605,6 +666,95 @@ class AccessDB
         $this->freeStmt($stmt);
 
         return $result['count'] > 0;
+    }
+
+    /**
+     * Private helper function to add or get an item from any table
+     * Eliminates code repetition for all add* methods
+     */
+    private function addOrGetItem($table, $column, $value, $itemType)
+    {
+        try {
+            // Check if item already exists
+            $selectQuery = "SELECT id FROM $table WHERE $column = ?";
+            $stmt = $this->pdo->prepare($selectQuery);
+            $stmt->execute([$value]);
+            $existing = $stmt->fetch(PDO::FETCH_ASSOC);
+            $this->freeStmt($stmt);
+
+            if ($existing) {
+                return ['id' => $existing['id'], 'name' => $value];
+            }
+
+            // Insert new item
+            $insertQuery = "INSERT INTO $table ($column) VALUES (?)";
+            $stmt = $this->pdo->prepare($insertQuery);
+            $stmt->execute([$value]);
+            $this->freeStmt($stmt);
+
+            // ODBC driver doesn't support lastInsertId(), so fetch the record we just inserted
+            $stmt = $this->pdo->prepare("SELECT id FROM $table WHERE $column = ?");
+            $stmt->execute([$value]);
+            $newRecord = $stmt->fetch(PDO::FETCH_ASSOC);
+            $this->freeStmt($stmt);
+
+            if ($newRecord) {
+                return ['id' => $newRecord['id'], 'name' => $value];
+            }
+
+            // Fallback: return without ID (should rarely happen)
+            return ['id' => null, 'name' => $value];
+        } catch (\Exception $e) {
+            throw new \Exception('Failed to add ' . $itemType . ': ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Add a new color to the colors table
+     */
+    public function addColor($colorName)
+    {
+        return $this->addOrGetItem('colors', 'color_name', $colorName, 'color');
+    }
+
+    /**
+     * Add a new brand
+     */
+    public function addBrand($brandName)
+    {
+        return $this->addOrGetItem('brands', 'brand_name', $brandName, 'brand');
+    }
+
+    /**
+     * Add a new heels type
+     */
+    public function addHeels($heelsName)
+    {
+        return $this->addOrGetItem('heels', 'heel_name', $heelsName, 'heels');
+    }
+
+    /**
+     * Add new tags
+     */
+    public function addTags($tagsName)
+    {
+        return $this->addOrGetItem('tags', 'tag_name', $tagsName, 'tags');
+    }
+
+    /**
+     * Add a new category
+     */
+    public function addCategory($categoryName)
+    {
+        return $this->addOrGetItem('categories', 'category_name', $categoryName, 'category');
+    }
+
+    /**
+     * Add a new product group
+     */
+    public function addProductGroup($productGroupName)
+    {
+        return $this->addOrGetItem('product_groups', 'group_name', $productGroupName, 'product group');
     }
 }
 ?>

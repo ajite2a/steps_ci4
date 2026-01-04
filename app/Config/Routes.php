@@ -46,3 +46,5 @@ $routes->post('items/store', 'Item::store', ['as' => 'item.store']);
 $routes->get('items/(:num)/edit', 'Item::edit/$1', ['as' => 'item.edit']);
 $routes->post('items/(:num)/update', 'Item::update/$1', ['as' => 'item.update']);
 $routes->post('items/(:num)/delete', 'Item::delete/$1', ['as' => 'item.delete']);
+$routes->post('item/addItemValue', 'Item::addItemValue', ['as' => 'item.addItemValue']);
+$routes->get('item/getVariantForm', 'Item::getVariantForm', ['as' => 'item.getVariantForm']);

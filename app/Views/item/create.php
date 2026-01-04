@@ -1,270 +1,484 @@
 <?= $this->extend('layouts/app') ?>
 
 <?= $this->section('css') ?>
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet" />
 <style>
-    .form-section {
-        background: #f8f9fa;
-        padding: 15px;
-        border-radius: 8px;
-        margin-bottom: 15px;
-    }
-    
-    .form-group-compact label {
-        font-size: 12px;
-        font-weight: 600;
-        color: #495057;
-        margin-bottom: 3px;
-        text-transform: uppercase;
-        letter-spacing: 0.3px;
-    }
-    
-    .form-group-compact input,
-    .form-group-compact select,
-    .form-group-compact textarea {
-        font-size: 13px;
-        padding: 6px 8px;
-        border: 1px solid #dee2e6;
-        border-radius: 4px;
-    }
-    
-    .form-group-compact input:focus,
-    .form-group-compact select:focus,
-    .form-group-compact textarea:focus {
-        border-color: #667eea;
-        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    .header-section {
+        background-color: #f8f9fa;
+        color: white;
     }
 
-    .action-buttons {
-        margin-top: 20px;
-        display: flex;
-        gap: 10px;
-        padding-top: 15px;
-        border-top: 1px solid #dee2e6;
+    .header-section .form-label {
+        color: #495057;
+        font-weight: 600;
     }
-    
-    .required-field::after {
-        content: " *";
-        color: #dc3545;
+
+    .header-section .form-control,
+    .header-section .select2-container--bootstrap-5 .select2-selection {
+        border-color: transparent;
+        box-shadow: none;
     }
 </style>
 <?= $this->endSection() ?>
 
 <?= $this->section('content') ?>
-
 <div class="container-fluid">
-    <div class="mb-1">
-        <h2 class="mb-2">
-            <?php if (isset($item) && !empty($item)): ?>
-                Edit Item
-            <?php else: ?>
-                Create New Item
-            <?php endif; ?>
-        </h2>
+    <div class="mb-2">
+        <h3 class="fw-bold">
+            <?= isset($item) && !empty($item) ? 'Edit Item' : 'Create New Item' ?>
+        </h3>
         <p class="text-muted mb-0">Manage product information and details</p>
     </div>
 
     <?php if (session()->getFlashdata('error')): ?>
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <?= session()->getFlashdata('error') ?>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
+    <div class="alert alert-danger alert-dismissible fade show">
+        <?= session()->getFlashdata('error') ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
     <?php endif; ?>
 
-    <form action="<?php if (isset($item) && !empty($item)): ?><?= route_to('item.update', $item['id']) ?><?php else: ?><?= route_to('item.store') ?><?php endif; ?>" method="post">
+    <form action="<?= isset($item) && !empty($item) ? route_to('item.update', $item['id']) : route_to('item.store') ?>" method="post">
         <?= csrf_field() ?>
 
-        <div class="row">
-            <!-- Left Column - Form (4 columns) -->
-            <div class="col-md-4">
-                <div class="form-section">
-                    <!-- Product Code -->
-                    <div class="mb-3">
-                        <label for="product_code" class="form-label required-field">Product Code</label>
-                        <input type="text" class="form-control form-group-compact" id="product_code" name="product_code" value="<?= isset($item) ? esc($item['product_code']) : '' ?>" placeholder="e.g., 100826" required autofocus>
-                    </div>
-                    
-                    <!-- Date & Product Name -->
-                    <div class="row g-3 mb-3">
-                        <div class="col-6">
-                            <div class="row">
-                                <div class="col-12 mt-3">
-                                    <label for="item_date" class="form-label">Date</label>
-                                    <input type="date" class="form-control form-group-compact" id="item_date" name="item_date" value="<?= isset($item) ? esc($item['item_date']) : date('Y-m-d') ?>">
-                                </div>
-                                <div class="col-12 mt-3">
-                                    <label for="product_name" class="form-label required-field">Product Name</label>
-                                    <select class="form-select form-group-compact" id="product_name" name="product_name" required>
-                                        <option value="">-- Select --</option>
-                                        <option value="KIDS" <?= isset($item) && $item['product_name'] == 'KIDS' ? 'selected' : '' ?>>KIDS</option>
-                                        <option value="MEN" <?= isset($item) && $item['product_name'] == 'MEN' ? 'selected' : '' ?>>MEN</option>
-                                        <option value="WOMEN" <?= isset($item) && $item['product_name'] == 'WOMEN' ? 'selected' : '' ?>>WOMEN</option>
-                                    </select>
-                                </div>
-                                <div class="col-12 mt-3">
-                                    <label for="color_id" class="form-label">Color</label>
-                                    <select class="form-select form-group-compact" id="color_id" name="color_id">
-                                        <option value="">-- Select --</option>
-                                        <?php if (!empty($colors)): ?>
-                                            <?php foreach ($colors as $color): ?>
-                                                <option value="<?= esc($color['id']) ?>" <?= isset($item) && $item['color_id'] == $color['id'] ? 'selected' : '' ?>>
-                                                    <?= esc($color['color_name']) ?>
-                                                </option>
-                                            <?php endforeach; ?>
-                                        <?php endif; ?>
-                                    </select>
-                                </div>
-                                <div class="col-12 mt-3">
-                                    <label for="article" class="form-label">Article</label>
-                                    <input type="text" class="form-control form-group-compact" id="article" name="article" value="<?= isset($item) ? esc($item['article'] ?? '') : '' ?>" placeholder="e.g., BINGO-151">
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="row">
-                                <div class="col-12 mt-3">
-                                    <label for="img_code" class="form-label">IMG Code</label>
-                                    <input type="text" class="form-control form-group-compact" id="img_code" name="img_code" value="<?= isset($item) ? esc($item['img_code'] ?? '') : '' ?>" placeholder="">
-                                </div>
-                                <!-- Product Image -->
-                                <div class="col-12 mt-3">
-                                    <label class="form-label">Product Image</label>
-                                    <div style="width: 100%; height: 175px; background: #e9ecef; border: 2px dashed #adb5bd; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #6c757d; font-size: 13px; text-align: center;">
-                                        <div>
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" style="opacity: 0.5; margin-bottom: 10px;" viewBox="0 0 16 16">
-                                                <path d="M6.002 5.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/>
-                                                <path d="M2.002 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2h-12zm12 1a1 1 0 0 1 1 1v6.5l-3.777-1.947a.5.5 0 0 0-.577.093l-3.71 3.71-2.66-1.772a.5.5 0 0 0-.63.062L1.002 12V3a1 1 0 0 1 1-1h12z"/>
-                                            </svg>
-                                            <p style="margin: 0;">No Image Uploaded</p>
-                                            <small>Upload product image</small>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>                                                
-                        </div>
-                        
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="supplier_id" class="form-label">Supplier</label>
-                        <select class="form-select form-group-compact" id="supplier_id" name="supplier_id">
-                            <option value="">-- Select --</option>
-                            <?php if (!empty($suppliers)): ?>
-                                <?php foreach ($suppliers as $supplier): ?>
-                                    <option value="<?= esc($supplier['id']) ?>" <?= isset($item) && $item['supplier_id'] == $supplier['id'] ? 'selected' : '' ?>>
-                                        <?= esc($supplier['supplier_name']) ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
-                        </select>                        
-                    </div>
-
-                    <!-- Article & Product Group -->
-                    <div class="row g-3 mb-3">                        
-                        <div class="col-12">
-                            <label for="product_group" class="form-label">Product Group</label>
-                            <input type="text" class="form-control form-group-compact" id="product_group" name="product_group" value="<?= isset($item) ? esc($item['product_group'] ?? '') : '' ?>" placeholder="e.g., SCHOOL SHOES">
-                        </div>
-                    </div>
-
-                    <!-- Brand & Heels -->
-                    <div class="row g-3 mb-3">
-                        <div class="col-6">
-                            <label for="brand" class="form-label">Brand</label>
-                            <input type="text" class="form-control form-group-compact" id="brand" name="brand" value="<?= isset($item) ? esc($item['brand'] ?? '') : '' ?>" placeholder="e.g., CAMPUS">
-                        </div>
-                        <div class="col-6">
-                            <label for="heels" class="form-label">Heels</label>
-                            <input type="text" class="form-control form-group-compact" id="heels" name="heels" value="<?= isset($item) ? esc($item['heels'] ?? '') : '' ?>" placeholder="e.g., FLAT">
-                        </div>
-                    </div>
-
-                    <!-- Category & Tags -->
-                    <div class="row g-3 mb-3">
-                        <div class="col-6">
-                            <label for="category" class="form-label">Category</label>
-                            <input type="text" class="form-control form-group-compact" id="category" name="category" value="<?= isset($item) ? esc($item['category'] ?? '') : '' ?>" placeholder="e.g., VELCRO">
-                        </div>
-                        <div class="col-6">
-                            <label for="tags" class="form-label">Tags</label>
-                            <input type="text" class="form-control form-group-compact" id="tags" name="tags" value="<?= isset($item) ? esc($item['tags'] ?? '') : '' ?>" placeholder="e.g., IS, NEW">
-                        </div>
-                    </div>
-
-                    <!-- Purchase Rate & GST -->
-                    <div class="row g-3 mb-3">
-                        <div class="col-6">
-                            <label for="purchase_rate" class="form-label">Purchase Rate</label>
-                            <input type="text" class="form-control form-group-compact" id="purchase_rate" name="purchase_rate" value="<?= isset($item) ? esc($item['purchase_rate'] ?? '') : '' ?>" placeholder="577.50">
-                        </div>
-                        <div class="col-6">
-                            <label for="gst" class="form-label">GST %</label>
-                            <input type="text" class="form-control form-group-compact" id="gst" name="gst" value="<?= isset($item) ? esc($item['gst'] ?? '') : '' ?>" placeholder="12.0">
-                        </div>
-                    </div>
-
-                    <!-- MRP & Purchase Code -->
-                    <div class="row g-3 mb-3">
-                        <div class="col-6">
-                            <label for="mrp" class="form-label">MRP</label>
-                            <input type="text" class="form-control form-group-compact" id="mrp" name="mrp" value="<?= isset($item) ? esc($item['mrp'] ?? '') : '' ?>" placeholder="825.00">
-                        </div>
-                        <div class="col-6">
-                            <label for="purchase_code" class="form-label">Purchase Code</label>
-                            <input type="text" class="form-control form-group-compact" id="purchase_code" name="purchase_code" value="<?= isset($item) ? esc($item['purchase_code'] ?? '') : '' ?>" placeholder="977078">
-                        </div>
-                    </div>
-
-                    <!-- Size From & IMG Code -->
-                    <div class="row g-3 mb-3">
-                        <div class="col-6">
-                            <label for="size_from" class="form-label">From Size</label>
-                            <input type="text" class="form-control form-group-compact" id="size_from" name="size_from" value="<?= isset($item) ? esc($item['size_from'] ?? '') : '' ?>" placeholder="32">
-                        </div>
-                        <div class="col-6">
-                            <label for="img_code" class="form-label">IMG Code</label>
-                            <input type="text" class="form-control form-group-compact" id="img_code" name="img_code" value="<?= isset($item) ? esc($item['img_code'] ?? '') : '' ?>" placeholder="">
-                        </div>
-                    </div>
-
-                    
+        <!-- Header Section -->
+        <div class="card border-0 shadow-sm header-section p-4 mb-4">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label for="item_date" class="form-label">Date <span class="text-danger">*</span></label>
+                    <input type="date" class="form-control" id="item_date" name="item_date" value="<?= isset($item) ? esc($item['item_date']) : date('Y-m-d') ?>" required>
                 </div>
-
-                <!-- Action Buttons -->
-                <div class="action-buttons">
-                    <button type="submit" class="btn btn-gradient flex-grow-1">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check me-2" viewBox="0 0 16 16" style="display: inline-block; vertical-align: -3px;">
-                            <path d="M10.854 7.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 0 1 .708-.708L7.5 9.793l2.646-2.647a.5.5 0 0 1 .708 0z"/>
-                        </svg>
-                        <?php if (isset($item) && !empty($item)): ?>
-                            Update Item
-                        <?php else: ?>
-                            Create Item
-                        <?php endif; ?>
-                    </button>
-                    <a href="<?= route_to('item.index') ?>" class="btn btn-outline-secondary flex-grow-1 text-dark text-decoration-none">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x me-2" viewBox="0 0 16 16" style="display: inline-block; vertical-align: -3px;">
-                            <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
-                        </svg>
-                        Cancel
-                    </a>
+                <div class="col-md-4">
+                    <label for="product_name" class="form-label d-flex gap-2 align-items-center">
+                        Product Name <span class="text-danger">*</span>
+                    </label>
+                    <div class="d-flex gap-2">
+                        <select class="form-select" id="product_name" name="product_name" required>
+                            <option value="">Select Product Name</option>
+                            <?php if (!empty($sizes)): foreach ($sizes as $size): ?>
+                            <option value="<?= esc($size['master_name']) ?>" data-id="<?= esc($size['id']) ?>" <?= isset($item) && $item['product_name'] == $size['master_name'] ? 'selected' : '' ?>>
+                                <?= esc($size['master_name']) ?>
+                            </option>
+                            <?php endforeach; endif; ?>
+                        </select>
+                        <button class="btn btn-outline-secondary flex-shrink-0" type="button" id="sizeInfoBtn" data-bs-toggle="modal" data-bs-target="#sizeModal" title="View Sizes" style="min-width: 40px;">
+                            ℹ
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-5">
+                    <label for="supplier_id" class="form-label">Supplier Name <span class="text-danger">*</span></label>
+                    <select class="form-select" id="supplier_id" name="supplier_id" required>
+                        <option value="">Select Supplier</option>
+                        <?php if (!empty($suppliers)): foreach ($suppliers as $supplier): ?>
+                        <option value="<?= esc($supplier['id']) ?>" <?= isset($item) && $item['supplier_id'] == $supplier['id'] ? 'selected' : '' ?>>
+                            <?= esc($supplier['supplier_name']) ?>
+                        </option>
+                        <?php endforeach; endif; ?>
+                    </select>
                 </div>
             </div>
+        </div>
 
-            <!-- Right Column - Table Display Area (8 columns) -->
-            <div class="col-md-8">
-                <div class="form-section" style="border: 2px dashed #dee2e6; display: flex; align-items: center; justify-content: center; min-height: 600px;">
-                    <div style="text-align: center; color: #6c757d;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" class="mb-3" style="opacity: 0.5;" viewBox="0 0 16 16">
-                            <path d="M0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2zm15 2h-4V2h4v2zm0 5h-5V5h5v4zm0 5h-4v-4h4v4zM10 5H5v4h5V5z"/>
-                        </svg>
-                        <h6 style="font-size: 14px; font-weight: 600; color: #495057; margin-bottom: 8px;">Table Display Area</h6>
-                        <p style="font-size: 12px; margin: 0;">Reserved for future data table display</p>
+        <!-- Variants Section (Collapsible) -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-light">
+                <button class="btn btn-link w-100 text-start text-dark fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#variantsSection">
+                    Product Variants <span class="float-end">+</span>
+                </button>
+            </div>
+            <div class="collapse" id="variantsSection">
+                <div class="card-body">
+                    <div id="variantsList">
+                        <p class="text-muted">No variants added yet. Click the button below to add variants.</p>
                     </div>
+                    <button type="button" class="btn btn-success" id="addVariantBtn">
+                        <i class="bi bi-plus"></i> Add Variant
+                    </button>
                 </div>
             </div>
         </div>
     </form>
-</div>
 
+    <!-- Size Info Modal -->
+    <div class="modal fade" id="sizeModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Available Sizes - <span id="sizeModalTitle">Select a Product</span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="sizeList" class="d-flex flex-wrap gap-2">
+                        <p class="text-muted">Please select a product name to view sizes</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Item Modal -->
+    <div class="modal fade" id="addItemModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addItemModalTitle">Add New Item</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="text" class="form-control" id="newItemValue" placeholder="Enter value">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveItemBtn">Save Item</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<?= $this->endSection() ?>
+
+<?= $this->section('js') ?>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+$(document).ready(function() {
+    // Store sizes data
+    const sizesData = <?= json_encode($sizes ?? []) ?>;
+    let currentItemType = ''; // Track which type of item is being added
+    let currentFieldId = ''; // Track which field to update
+    
+    // Initialize Select2 for all dropdown fields
+    $('#product_name').select2({
+        theme: 'bootstrap-5',
+        width: '100%'
+    });
+    
+    $('#supplier_id').select2({
+        theme: 'bootstrap-5',
+        width: '100%'
+    });
+
+    $('#color_id').select2({
+        theme: 'bootstrap-5',
+        width: '100%'
+    });
+
+    $('#product_group').select2({
+        theme: 'bootstrap-5',
+        width: '100%'
+    });
+
+    $('#brand').select2({
+        theme: 'bootstrap-5',
+        width: '100%'
+    });
+
+    $('#heels').select2({
+        theme: 'bootstrap-5',
+        width: '100%'
+    });
+
+    $('#tags').select2({
+        theme: 'bootstrap-5',
+        width: '100%'
+    });
+
+    $('#category').select2({
+        theme: 'bootstrap-5',
+        width: '100%'
+    });
+
+    // Handle all add item buttons (use event delegation for dynamic buttons)
+    $(document).on('click', '.add-item-btn', function(e) {
+        e.stopPropagation();
+        currentItemType = $(this).data('type');
+        currentFieldId = $(this).data('field-id');
+        const displayName = currentItemType.charAt(0).toUpperCase() + currentItemType.slice(1).replace('_', ' ');
+        
+        $('#addItemModalTitle').text(`Add New ${displayName}`);
+        $('#newItemValue').val('').focus();
+    });
+
+    // Handle save item button
+    $('#saveItemBtn').on('click', function() {
+        const itemValue = $('#newItemValue').val().trim();
+        
+        if (!itemValue) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Empty Field',
+                text: 'Please enter a value',
+                confirmButtonColor: '#667eea'
+            });
+            return;
+        }
+
+        // AJAX call to add item to database
+        $.ajax({
+            type: 'POST',
+            url: '<?= base_url('item/addItemValue') ?>',
+            data: {
+                type: currentItemType,
+                value: itemValue
+            },
+            dataType: 'json',
+            success: function(response) {
+                if (response.success) {
+                    // Add new option to the appropriate select2 dropdown
+                    const $select = $(`#${currentFieldId}`);
+                    const newOption = new Option(response.data.name, response.data.id, true, true);
+                    $select.append(newOption).trigger('change');
+                    
+                    // Close modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('addItemModal'));
+                    modal.hide();
+                    
+                    // Show success message
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Added!',
+                        text: `${currentItemType.charAt(0).toUpperCase() + currentItemType.slice(1)} added successfully`,
+                        confirmButtonColor: '#667eea',
+                        timer: 1500
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: response.message || 'Failed to add item',
+                        confirmButtonColor: '#667eea'
+                    });
+                }
+            },
+            error: function() {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'An error occurred while adding the item',
+                    confirmButtonColor: '#667eea'
+                });
+            }
+        });
+    });
+
+    // Handle product name change
+    $('#product_name').on('change', function() {
+        const selectedValue = $(this).val();
+        const selectedOption = $(this).find('option:selected');
+        const selectedId = selectedOption.data('id');
+        
+        if (!selectedValue) {
+            $('#sizeInfoBtn').prop('disabled', true);
+        } else {
+            $('#sizeInfoBtn').prop('disabled', false);
+        }
+    });
+
+    // Handle size info button click
+    $('#sizeInfoBtn').on('click', function() {
+        const selectedValue = $('#product_name').val();
+        const selectedOption = $('#product_name').find('option:selected');
+        const selectedId = selectedOption.data('id');
+        
+        if (!selectedValue) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Please Select',
+                text: 'Please select a product name first',
+                confirmButtonColor: '#667eea'
+            });
+            return;
+        }
+
+        // Find the size master data
+        const sizeData = sizesData.find(s => s.id == selectedId);
+        
+        if (sizeData && sizeData.sizes && sizeData.sizes.length > 0) {
+            $('#sizeModalTitle').text(selectedValue);
+            const sizeHtml = sizeData.sizes.map(size => {
+                const displayText = size.new_size 
+                    ? `${size.size_value} (${size.new_size})`
+                    : size.size_value;
+                return `<span class="badge bg-primary">${displayText}</span>`;
+            }).join('');
+            $('#sizeList').html(sizeHtml);
+        } else {
+            $('#sizeModalTitle').text(selectedValue);
+            $('#sizeList').html('<p class="text-muted">No sizes available for this product</p>');
+        }
+    });
+
+    // Handle size info button click
+    $('#sizeInfoBtn').on('click', function() {
+        const selectedValue = $('#product_name').val();
+        const selectedOption = $('#product_name').find('option:selected');
+        const selectedId = selectedOption.data('id');
+        
+        if (!selectedValue) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Please Select',
+                text: 'Please select a product name first',
+                confirmButtonColor: '#667eea'
+            });
+            return;
+        }
+
+        // Find the size master data
+        const sizeData = sizesData.find(s => s.id == selectedId);
+        
+        if (sizeData && sizeData.sizes && sizeData.sizes.length > 0) {
+            $('#sizeModalTitle').text(selectedValue);
+            const sizeHtml = sizeData.sizes.map(size => {
+                const displayText = size.new_size 
+                    ? `${size.size_value} (${size.new_size})`
+                    : size.size_value;
+                return `<span class="badge bg-primary">${displayText}</span>`;
+            }).join('');
+            $('#sizeList').html(sizeHtml);
+        } else {
+            $('#sizeModalTitle').text(selectedValue);
+            $('#sizeList').html('<p class="text-muted">No sizes available for this product</p>');
+        }
+    });
+
+    // Handle add variant button
+    let variantCount = 0;
+    $('#addVariantBtn').on('click', function(e) {
+        e.preventDefault();
+        
+        // Check if product name is selected
+        const productNameValue = $('#product_name').val();
+        if (!productNameValue) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Select Product',
+                text: 'Please select a product name first before adding variants.'
+            });
+            return;
+        }
+        
+        variantCount++;
+        
+        // Get variant HTML via AJAX
+        $.ajax({
+            type: 'GET',
+            url: '<?= base_url('item/getVariantForm') ?>',
+            data: { variantCount: variantCount, productName: productNameValue },
+            dataType: 'json',
+            success: function(response) {
+                if (response.success) {
+                    const $variantsList = $('#variantsList');
+                    if ($variantsList.find('.variant-item').length === 0) {
+                        $variantsList.empty();
+                    }
+                    $variantsList.append(response.html);
+                    
+                    // Initialize Select2 for newly added select fields
+                    $(`#variant-${variantCount}`).find('.select2-variant-color').select2({
+                        theme: 'bootstrap-5',
+                        width: '100%'
+                    });
+                    $(`#variant-${variantCount}`).find('.select2-variant-product-group').select2({
+                        theme: 'bootstrap-5',
+                        width: '100%'
+                    });
+                    $(`#variant-${variantCount}`).find('.select2-variant-brand').select2({
+                        theme: 'bootstrap-5',
+                        width: '100%'
+                    });
+                    $(`#variant-${variantCount}`).find('.select2-variant-heels').select2({
+                        theme: 'bootstrap-5',
+                        width: '100%'
+                    });
+                    $(`#variant-${variantCount}`).find('.select2-variant-tags').select2({
+                        theme: 'bootstrap-5',
+                        width: '100%'
+                    });
+                    $(`#variant-${variantCount}`).find('.select2-variant-category').select2({
+                        theme: 'bootstrap-5',
+                        width: '100%'
+                    });
+
+                    // Populate sizes from selected product as badges
+                    const sizesData = response.sizes || [];
+                    const $sizesContainer = $(`#variant-${variantCount}`).find('.variant-sizes-container');
+                    const $sizesInput = $(`#variant-${variantCount}`).find('.variant-sizes-input');
+                    
+                    sizesData.forEach(size => {
+                        const badgeHtml = `
+                            <label class="badge bg-light text-dark border border-secondary p-2 cursor-pointer" style="cursor: pointer;">
+                                <input type="checkbox" class="form-check-input variant-size-checkbox me-1" value="${size.id}" data-size-name="${size.size_value}">
+                                ${size.size_value}(${size.new_size ? size.new_size : ''})
+                            </label>
+                        `;
+                        $sizesContainer.append(badgeHtml);
+                    });
+
+                    // Handle size checkbox changes
+                    $(`#variant-${variantCount}`).find('.variant-size-checkbox').on('change', function() {
+                        const $badge = $(this).closest('label');
+                        const $variantSizesInput = $(`#variant-${variantCount}`).find('.variant-sizes-input');
+                        
+                        if ($(this).is(':checked')) {
+                            $badge.removeClass('bg-light text-dark border-secondary').addClass('bg-success text-white border-success');
+                        } else {
+                            $badge.removeClass('bg-success text-white border-success').addClass('bg-light text-dark border-secondary');
+                        }
+
+                        const selectedSizes = $(`#variant-${variantCount}`).find('.variant-size-checkbox:checked')
+                            .map(function() { return $(this).val(); })
+                            .get()
+                            .join(',');
+                        $variantSizesInput.val(selectedSizes);
+                    });
+
+                    // Handle image preview
+                    $(`#variant-${variantCount}`).find('.variant-image-input').on('change', function(e) {
+                        const file = e.target.files[0];
+                        if (file) {
+                            const reader = new FileReader();
+                            reader.onload = function(event) {
+                                $(`#variant-${variantCount}`).find('.variant-image-preview')
+                                    .attr('src', event.target.result)
+                                    .show();
+                            };
+                            reader.readAsDataURL(file);
+                        }
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: response.message || 'Failed to create variant form.'
+                    });
+                }
+            },
+            error: function() {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'An error occurred while creating variant form.'
+                });
+            }
+        });
+    });
+
+    // Handle remove variant
+    $(document).on('click', '.remove-variant', function() {
+        const variantId = $(this).data('variant-id');
+        $(`#variant-${variantId}`).remove();
+        
+        if ($('#variantsList .variant-item').length === 0) {
+            $('#variantsList').html('<p class="text-muted">No variants added yet. Click the button below to add variants.</p>');
+        }
+    });
+});
+</script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
 <?= $this->endSection() ?>
 
