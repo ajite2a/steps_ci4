@@ -99,6 +99,58 @@
                 </div>
             </div>
         </div>
+
+        <!-- Purchase Details Section -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-light">
+                <h6 class="mb-0 fw-bold">Purchase Details</h6>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6 col-lg-4">
+                        <label for="purchase_rate" class="form-label">Purchase Rate</label>
+                        <input type="number" class="form-control" id="purchase_rate" name="purchase_rate" placeholder="e.g., 100.00" step="0.01">
+                    </div>
+                    <div class="col-md-6 col-lg-4">
+                        <label for="gst_type" class="form-label">GST Type</label>
+                        <select class="form-select" id="gst_type" name="gst_type">
+                            <option value="">Select GST Type</option>
+                            <option value="5%">5%</option>
+                            <option value="12%">12%</option>
+                            <option value="18%">18%</option>
+                            <option value="28%">28%</option>
+                            <option value="0%">0%</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6 col-lg-4">
+                        <label for="gst_value" class="form-label">GST Value</label>
+                        <input type="number" class="form-control" id="gst_value" name="gst_value" placeholder="e.g., 18.00" step="0.01">
+                    </div>
+                    <div class="col-md-6 col-lg-4">
+                        <label for="purchase_code" class="form-label">Purchase Code</label>
+                        <input type="text" class="form-control" id="purchase_code" name="purchase_code" placeholder="e.g., PO-2024-001">
+                    </div>
+                    <div class="col-md-6 col-lg-4">
+                        <label for="mrp" class="form-label">MRP</label>
+                        <input type="number" class="form-control" id="mrp" name="mrp" placeholder="e.g., 500.00" step="0.01">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Action Buttons -->
+        <div class="row g-3 mb-4">
+            <div class="col-auto">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-circle"></i> Save
+                </button>
+            </div>
+            <div class="col-auto">
+                <a href="<?= route_to('item.index') ?>" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> Cancel
+                </a>
+            </div>
+        </div>
     </form>
 
     <!-- Size Info Modal -->
@@ -271,6 +323,23 @@ $(document).ready(function() {
         const selectedOption = $(this).find('option:selected');
         const selectedId = selectedOption.data('id');
         
+        // Check if variants exist
+        const variantCount = $('#variantsList').find('.variant-item').length;
+        if (variantCount > 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Cannot Change',
+                text: 'A variant is already added to this product. Remove the variant first to change the product.',
+                confirmButtonColor: '#667eea'
+            });
+            // Reset to previous value
+            $(this).val($(this).data('previous-value')).trigger('change.select2');
+            return;
+        }
+        
+        // Store the current value as previous value for next change check
+        $(this).data('previous-value', selectedValue);
+        
         if (!selectedValue) {
             $('#sizeInfoBtn').prop('disabled', true);
         } else {
@@ -375,6 +444,8 @@ $(document).ready(function() {
                     const $variantsList = $('#variantsList');
                     if ($variantsList.find('.variant-item').length === 0) {
                         $variantsList.empty();
+                        // Disable product name when first variant is added
+                        $('#product_name').prop('disabled', true).data('previous-value', $('#product_name').val());
                     }
                     $variantsList.append(response.html);
                     
@@ -444,11 +515,15 @@ $(document).ready(function() {
                             const reader = new FileReader();
                             reader.onload = function(event) {
                                 $(`#variant-${variantCount}`).find('.variant-image-preview')
-                                    .attr('src', event.target.result)
-                                    .show();
+                                    .attr('src', event.target.result);
                             };
                             reader.readAsDataURL(file);
                         }
+                    });
+
+                    // Handle image click to open file picker
+                    $(`#variant-${variantCount}`).find('.variant-image-preview').on('click', function() {
+                        $(`#variant-${variantCount}`).find('.variant-image-input').click();
                     });
                 } else {
                     Swal.fire({
@@ -475,6 +550,8 @@ $(document).ready(function() {
         
         if ($('#variantsList .variant-item').length === 0) {
             $('#variantsList').html('<p class="text-muted">No variants added yet. Click the button below to add variants.</p>');
+            // Re-enable product name selection when all variants are removed
+            $('#product_name').prop('disabled', false);
         }
     });
 });

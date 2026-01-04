@@ -483,12 +483,16 @@ class Item extends BaseController
                             <!-- Variant Image -->
                             <div class="mb-3">
                                 <label class="form-label">Variant Image</label>
-                                <div class="mb-2">
-                                    <input type="file" class="form-control variant-image-input" name="variants[' . $variantCount . '][image]" accept="image/*">
+                                <div class="mb-2 text-center" style="cursor: pointer;">
+                                    <img class="variant-image-preview img-thumbnail" src="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22200%22 viewBox=%220 0 200 200%22%3E%3Crect fill=%22%23e9ecef%22 width=%22200%22 height=%22200%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-family=%22Arial%22 font-size=%2216%22 fill=%22%23666%22%3ENo Image%3C/text%3E%3C/svg%3E" alt="Preview" style="max-width: 100%; height: 200px; object-fit: cover; border: 2px dashed #ccc; border-radius: 5px; cursor: pointer;">
+                                    <input type="file" class="form-control variant-image-input" name="variants[' . $variantCount . '][image]" accept="image/*" style="display: none;">
                                 </div>
-                                <div class="text-center">
-                                    <img class="variant-image-preview img-thumbnail" src="" alt="Preview" style="max-width: 100%; height: 150px; object-fit: cover; display: none;">
-                                </div>
+                            </div>
+
+                            <!-- Image Code -->
+                            <div class="mb-3">
+                                <label class="form-label">Image Code</label>
+                                <input type="text" class="form-control" name="variants[' . $variantCount . '][image_code]" placeholder="e.g., IMG-001">
                             </div>
 
                             <!-- Sizes -->
