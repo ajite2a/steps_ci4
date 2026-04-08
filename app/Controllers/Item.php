@@ -494,16 +494,18 @@ class Item extends BaseController
                                 <label class="form-label">Image Code</label>
                                 <input type="text" class="form-control" name="variants[' . $variantCount . '][image_code]" placeholder="e.g., IMG-001">
                             </div>
+                        </div>
+                    </div>
 
-                            <!-- Sizes -->
-                            <div class="mb-3">
-                                <label class="form-label">Sizes</label>
-                                <div class="variant-sizes-container d-flex flex-wrap gap-2">
-                                    <!-- Sizes will be populated here as badges -->
-                                </div>
-                                <!-- Hidden input to store selected sizes -->
-                                <input type="hidden" name="variants[' . $variantCount . '][sizes]" class="variant-sizes-input" value="">
+                    <!-- Sizes with Quantity - Full Width -->
+                    <div class="row g-3 mt-2">
+                        <div class="col-12">
+                            <label class="form-label">Sizes with Quantity</label>
+                            <div class="variant-sizes-container">
+                                <!-- Sizes with quantity inputs will be populated here in single row -->
                             </div>
+                            <!-- Hidden input to store selected sizes with quantities as JSON -->
+                            <input type="hidden" name="variants[' . $variantCount . '][sizes]" class="variant-sizes-input" value="">
                         </div>
                     </div>
                 </div>

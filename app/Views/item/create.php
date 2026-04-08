@@ -244,6 +244,31 @@ $(document).ready(function() {
         width: '100%'
     });
 
+    // Calculate GST Value based on Purchase Rate and GST Type
+    function calculateGSTValue() {
+        const purchaseRate = parseFloat($('#purchase_rate').val()) || 0;
+        const gstType = $('#gst_type').val();
+        
+        if (purchaseRate > 0 && gstType) {
+            // Extract percentage from gst_type (e.g., "12%" -> 12)
+            const gstPercentage = parseFloat(gstType.replace('%', ''));
+            // Calculate GST value: purchase_rate * (1 + gst_percentage/100)
+            const gstValue = purchaseRate * (1 + gstPercentage / 100);
+            // Set the gst_value field with 2 decimal places
+            $('#gst_value').val(gstValue.toFixed(2));
+        }
+    }
+
+    // Trigger calculation on purchase rate change
+    $('#purchase_rate').on('change', function() {
+        calculateGSTValue();
+    });
+
+    // Trigger calculation on GST type change
+    $('#gst_type').on('change', function() {
+        calculateGSTValue();
+    });
+
     // Handle all add item buttons (use event delegation for dynamic buttons)
     $(document).on('click', '.add-item-btn', function(e) {
         e.stopPropagation();
@@ -475,37 +500,77 @@ $(document).ready(function() {
                         width: '100%'
                     });
 
-                    // Populate sizes from selected product as badges
+                    // Populate sizes from selected product as badges with quantity inputs
                     const sizesData = response.sizes || [];
                     const $sizesContainer = $(`#variant-${variantCount}`).find('.variant-sizes-container');
                     const $sizesInput = $(`#variant-${variantCount}`).find('.variant-sizes-input');
                     
+                    // Create a wrapper div with horizontal flex layout
+                    const $flexWrapper = $('<div class="d-flex flex-wrap gap-2"></div>');
+                    
                     sizesData.forEach(size => {
+                        const displayText = size.new_size ? `${size.size_value} (${size.new_size})` : size.size_value;
                         const badgeHtml = `
-                            <label class="badge bg-light text-dark border border-secondary p-2 cursor-pointer" style="cursor: pointer;">
-                                <input type="checkbox" class="form-check-input variant-size-checkbox me-1" value="${size.id}" data-size-name="${size.size_value}">
-                                ${size.size_value}(${size.new_size ? size.new_size : ''})
-                            </label>
+                            <div class="size-quantity-group" style="display: flex; align-items: center; gap: 6px; padding: 6px 10px; border: 1px solid #dee2e6; border-radius: 4px; background-color: #f8f9fa;">
+                                <label class="form-check-label mb-0" style="display: flex; align-items: center; gap: 4px; cursor: pointer; margin: 0;">
+                                    <input type="checkbox" class="form-check-input variant-size-checkbox" value="${size.id}" data-size-name="${size.size_value}" data-size-display="${displayText}" style="margin: 0; cursor: pointer;">
+                                    <span>${displayText}</span>
+                                </label>
+                                <input type="number" class="form-control form-control-sm variant-size-quantity" min="0" max="9999" value="0" placeholder="Qty" style="width: 55px; display: none;">
+                            </div>
                         `;
-                        $sizesContainer.append(badgeHtml);
+                        $flexWrapper.append(badgeHtml);
                     });
+                    
+                    $sizesContainer.append($flexWrapper);
 
                     // Handle size checkbox changes
                     $(`#variant-${variantCount}`).find('.variant-size-checkbox').on('change', function() {
-                        const $badge = $(this).closest('label');
+                        const $group = $(this).closest('.size-quantity-group');
+                        const $quantityInput = $group.find('.variant-size-quantity');
                         const $variantSizesInput = $(`#variant-${variantCount}`).find('.variant-sizes-input');
                         
                         if ($(this).is(':checked')) {
-                            $badge.removeClass('bg-light text-dark border-secondary').addClass('bg-success text-white border-success');
+                            $group.css('background-color', '#d1ecf1').css('border-color', '#0c5460');
+                            $quantityInput.show().focus();
+                            // Set default quantity to 0
+                            $quantityInput.val('0');
                         } else {
-                            $badge.removeClass('bg-success text-white border-success').addClass('bg-light text-dark border-secondary');
+                            $group.css('background-color', '#f8f9fa').css('border-color', '#dee2e6');
+                            $quantityInput.hide().val('0');
                         }
 
-                        const selectedSizes = $(`#variant-${variantCount}`).find('.variant-size-checkbox:checked')
-                            .map(function() { return $(this).val(); })
-                            .get()
-                            .join(',');
-                        $variantSizesInput.val(selectedSizes);
+                        // Update hidden input with JSON data
+                        const selectedSizes = [];
+                        $(`#variant-${variantCount}`).find('.variant-size-checkbox:checked').each(function() {
+                            const $group = $(this).closest('.size-quantity-group');
+                            const quantity = parseInt($group.find('.variant-size-quantity').val()) || 0;
+                            selectedSizes.push({
+                                id: $(this).val(),
+                                name: $(this).data('size-display'),
+                                quantity: quantity
+                            });
+                        });
+                        $variantSizesInput.val(JSON.stringify(selectedSizes));
+                    });
+
+                    // Handle quantity input changes
+                    $(`#variant-${variantCount}`).find('.variant-size-quantity').on('change', function() {
+                        const $group = $(this).closest('.size-quantity-group');
+                        const $variantSizesInput = $(`#variant-${variantCount}`).find('.variant-sizes-input');
+                        
+                        // Update hidden input with JSON data
+                        const selectedSizes = [];
+                        $(`#variant-${variantCount}`).find('.variant-size-checkbox:checked').each(function() {
+                            const $group = $(this).closest('.size-quantity-group');
+                            const quantity = parseInt($group.find('.variant-size-quantity').val()) || 0;
+                            selectedSizes.push({
+                                id: $(this).val(),
+                                name: $(this).data('size-display'),
+                                quantity: quantity
+                            });
+                        });
+                        $variantSizesInput.val(JSON.stringify(selectedSizes));
                     });
 
                     // Handle image preview
