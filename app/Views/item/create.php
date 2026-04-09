@@ -26,10 +26,8 @@
 <?= $this->section('content') ?>
 <div class="container-fluid">
     <div class="mb-2">
-        <h3 class="fw-bold">
-            <?= isset($item) && !empty($item) ? 'Edit Item' : 'Create New Item' ?>
-        </h3>
-        <p class="text-muted mb-0">Manage product information and details</p>
+        <h3 class="fw-bold">Create New Products</h3>
+        <p class="text-muted mb-0">Add variants and select quantities for each size. Each quantity will create a unique product with a sequential product code.</p>
     </div>
 
     <?php if (session()->getFlashdata('error')): ?>
@@ -39,7 +37,12 @@
     </div>
     <?php endif; ?>
 
-    <form action="<?= isset($item) && !empty($item) ? route_to('item.update', $item['id']) : route_to('item.store') ?>" method="post">
+    <div class="alert alert-info alert-dismissible fade show mb-3">
+        <i class="bi bi-info-circle"></i> <strong>Auto-save Active:</strong> Your variant data is automatically saved as you type. If an error occurs, your data will be restored automatically.
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <form action="<?= route_to('item.store') ?>" method="post">
         <?= csrf_field() ?>
 
         <!-- Header Section -->
@@ -47,7 +50,7 @@
             <div class="row g-3">
                 <div class="col-md-3">
                     <label for="item_date" class="form-label">Date <span class="text-danger">*</span></label>
-                    <input type="date" class="form-control" id="item_date" name="item_date" value="<?= isset($item) ? esc($item['item_date']) : date('Y-m-d') ?>" required>
+                    <input type="date" class="form-control" id="item_date" name="item_date" value="<?= date('Y-m-d') ?>" required>
                 </div>
                 <div class="col-md-4">
                     <label for="product_name" class="form-label d-flex gap-2 align-items-center">
@@ -57,7 +60,7 @@
                         <select class="form-select" id="product_name" name="product_name" required>
                             <option value="">Select Product Name</option>
                             <?php if (!empty($sizes)): foreach ($sizes as $size): ?>
-                            <option value="<?= esc($size['master_name']) ?>" data-id="<?= esc($size['id']) ?>" <?= isset($item) && $item['product_name'] == $size['master_name'] ? 'selected' : '' ?>>
+                            <option value="<?= esc($size['master_name']) ?>" data-id="<?= esc($size['id']) ?>">
                                 <?= esc($size['master_name']) ?>
                             </option>
                             <?php endforeach; endif; ?>
@@ -72,7 +75,7 @@
                     <select class="form-select" id="supplier_id" name="supplier_id" required>
                         <option value="">Select Supplier</option>
                         <?php if (!empty($suppliers)): foreach ($suppliers as $supplier): ?>
-                        <option value="<?= esc($supplier['id']) ?>" <?= isset($item) && $item['supplier_id'] == $supplier['id'] ? 'selected' : '' ?>>
+                        <option value="<?= esc($supplier['id']) ?>">
                             <?= esc($supplier['supplier_name']) ?>
                         </option>
                         <?php endforeach; endif; ?>
@@ -103,7 +106,7 @@
         <!-- Purchase Details Section -->
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-header bg-light">
-                <h6 class="mb-0 fw-bold">Purchase Details</h6>
+                <h6 class="mb-0 fw-bold">Common Purchase Details</h6>
             </div>
             <div class="card-body">
                 <div class="row g-3">
@@ -124,31 +127,42 @@
                     </div>
                     <div class="col-md-6 col-lg-4">
                         <label for="gst_value" class="form-label">GST Value</label>
-                        <input type="number" class="form-control" id="gst_value" name="gst_value" placeholder="e.g., 18.00" step="0.01">
-                    </div>
-                    <div class="col-md-6 col-lg-4">
-                        <label for="purchase_code" class="form-label">Purchase Code</label>
-                        <input type="text" class="form-control" id="purchase_code" name="purchase_code" placeholder="e.g., PO-2024-001">
+                        <input type="number" class="form-control" id="gst_value" name="gst_value" placeholder="e.g., 18.00" step="0.01" readonly>
                     </div>
                     <div class="col-md-6 col-lg-4">
                         <label for="mrp" class="form-label">MRP</label>
                         <input type="number" class="form-control" id="mrp" name="mrp" placeholder="e.g., 500.00" step="0.01">
                     </div>
+                    <div class="col-md-6 col-lg-4">
+                        <label for="purchase_code" class="form-label">Purchase Code</label>
+                        <input type="text" class="form-control" id="purchase_code" name="purchase_code" placeholder="e.g., PO-2024-001">
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Form Action Buttons -->
+    <!-- Form Action Buttons -->
         <div class="row g-3 mb-4">
             <div class="col-auto">
-                <button type="submit" class="btn btn-primary">
-                    <i class="bi bi-check-circle"></i> Save
+                <button type="submit" class="btn btn-primary" id="submitBtn">
+                    <i class="bi bi-check-circle"></i> Save All Products
                 </button>
             </div>
             <div class="col-auto">
                 <a href="<?= route_to('item.index') ?>" class="btn btn-secondary">
                     <i class="bi bi-x-circle"></i> Cancel
                 </a>
+            </div>
+            <div class="col-auto">
+                <small class="text-muted">
+                    <i class="bi bi-check-circle-fill text-success" id="autosaveIndicator" style="display: none;"></i>
+                    <span id="autosaveText" style="display: none;">Auto-saved</span>
+                </small>
+            </div>
+            <div class="col-auto">
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="debugBtn" title="Debug: Show form state" onclick="showDebugInfo()">
+                    📋 Debug
+                </button>
             </div>
         </div>
     </form>
@@ -203,46 +217,345 @@ $(document).ready(function() {
     let currentItemType = ''; // Track which type of item is being added
     let currentFieldId = ''; // Track which field to update
     
-    // Initialize Select2 for all dropdown fields
-    $('#product_name').select2({
-        theme: 'bootstrap-5',
-        width: '100%'
+    // Utility function to escape HTML
+    window.escapeHtml = function(text) {
+        if (!text) return '(empty)';
+        return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+    };
+    // Get form data from PHP session (passed via flashdata)
+    const formDataFromSession = <?= session()->getFlashdata('formData') ? session()->getFlashdata('formData') : 'null' ?>;
+    
+    // Function to save variant state to localStorage
+    function saveVariantState() {
+        const variantState = {
+            productName: $('#product_name').val(),
+            supplierId: $('#supplier_id').val(),
+            itemDate: $('#item_date').val(),
+            purchaseRate: $('#purchase_rate').val(),
+            gstType: $('#gst_type').val(),
+            mrp: $('#mrp').val(),
+            purchaseCode: $('#purchase_code').val(),
+            variants: []
+        };
+        
+        // Collect all variant data
+        $('#variantsList').find('.variant-item').each(function() {
+            const variantId = $(this).attr('id').replace('variant-', '');
+            const variantData = {};
+            
+            // Get all input values from this variant
+            $(this).find('input, select, textarea').each(function() {
+                const name = $(this).attr('name');
+                if (name) {
+                    variantData[name] = $(this).val();
+                }
+            });
+            
+            variantState.variants.push(variantData);
+        });
+        
+        localStorage.setItem('stepsCi4VariantState', JSON.stringify(variantState));
+        console.log('Variant state saved to localStorage');
+    }
+    
+    // Function to restore variant state from session data or localStorage
+    function restoreVariantState() {
+        let stateData = null;
+        
+        // First, try to restore from session (PHP flashdata)
+        if (formDataFromSession) {
+            console.log('Restoring from session data');
+            try {
+                stateData = JSON.parse(formDataFromSession);
+            } catch(e) {
+                console.error('Error parsing session data:', e);
+            }
+        }
+        
+        // If no session data, try localStorage
+        if (!stateData) {
+            console.log('Checking localStorage');
+            const saved = localStorage.getItem('stepsCi4VariantState');
+            if (saved) {
+                console.log('Restoring from localStorage');
+                try {
+                    stateData = JSON.parse(saved);
+                } catch(e) {
+                    console.error('Error parsing localStorage data:', e);
+                }
+            }
+        }
+        
+        // Restore the data
+        if (stateData) {
+            console.log('Restoring state:', stateData);
+            $('#product_name').val(stateData.productName);
+            $('#supplier_id').val(stateData.supplierId);
+            $('#item_date').val(stateData.itemDate);
+            $('#purchase_rate').val(stateData.purchaseRate);
+            $('#gst_type').val(stateData.gstType);
+            $('#mrp').val(stateData.mrp);
+            $('#purchase_code').val(stateData.purchaseCode);
+            
+            // Trigger Select2 change to update UI
+            setTimeout(function() {
+                $('#product_name').trigger('change.select2');
+                $('#supplier_id').trigger('change.select2');
+                $('#gst_type').trigger('change');
+                
+                // Recalculate GST after restore
+                calculateGSTValue();
+            }, 100);
+            
+            // Clear localStorage after restoration
+            localStorage.removeItem('stepsCi4VariantState');
+        }
+    }
+    
+    // Restore variants on page load
+    setTimeout(function() {
+        restoreVariantState();
+        
+        // Initialize Select2 AFTER restoring state
+        setTimeout(function() {
+            initializeSelect2();
+        }, 200);
+    }, 500);
+    
+    // Direct AJAX submission instead of form submit
+    $('#submitBtn').on('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        console.clear();
+        console.log('=== SAVE ALL PRODUCTS CLICKED ===');
+        
+        // Get Select2 values directly
+        const productName = $('#product_name').val();
+        const supplierId = $('#supplier_id').val();
+        const itemDate = $('#item_date').val();
+        const purchaseRate = $('#purchase_rate').val();
+        const gstType = $('#gst_type').val();
+        const mrp = $('#mrp').val();
+        const purchaseCode = $('#purchase_code').val();
+        
+        console.log('Product Name (from Select2):', productName);
+        console.log('Supplier ID (from Select2):', supplierId);
+        
+        // Validate product name
+        if (!productName || productName === '') {
+            Swal.fire({
+                icon: 'error',
+                title: 'Product Name Required',
+                text: 'Please select a product name from the dropdown.',
+                confirmButtonColor: '#667eea'
+            });
+            return false;
+        }
+        
+        // Validate supplier
+        if (!supplierId || supplierId === '') {
+            Swal.fire({
+                icon: 'error',
+                title: 'Supplier Required',
+                text: 'Please select a supplier from the dropdown.',
+                confirmButtonColor: '#667eea'
+            });
+            return false;
+        }
+        
+        // Get variants
+        const variantCount = $('#variantsList').find('.variant-item').length;
+        console.log('Variant Count:', variantCount);
+        
+        if (variantCount === 0) {
+            Swal.fire({
+                icon: 'error',
+                title: 'No Variants',
+                text: 'Please add at least one variant with sizes before submitting.',
+                confirmButtonColor: '#667eea'
+            });
+            return false;
+        }
+        
+        // Collect variant data
+        const variants = [];
+        $('#variantsList').find('.variant-item').each(function(index) {
+            const variantIndex = $(this).attr('id').replace('variant-', ''); // Get variant number from id
+            
+            // Get all form fields for this variant
+            const colorId = $(this).find(`[name="variants[${variantIndex}][color_id]"]`).val();
+            const sizesJson = $(this).find(`[name="variants[${variantIndex}][variant_sizes_input]"]`).val();
+            const article = $(this).find(`[name="variants[${variantIndex}][article]"]`).val();
+            const productGroup = $(this).find(`[name="variants[${variantIndex}][product_group]"]`).val();
+            const brand = $(this).find(`[name="variants[${variantIndex}][brand]"]`).val();
+            const heels = $(this).find(`[name="variants[${variantIndex}][heels]"]`).val();
+            const tags = $(this).find(`[name="variants[${variantIndex}][tags]"]`).val();
+            const category = $(this).find(`[name="variants[${variantIndex}][category]"]`).val();
+            const productCode = $(this).find(`[name="variants[${variantIndex}][product_code]"]`).val();
+            const imageCode = $(this).find(`[name="variants[${variantIndex}][image_code]"]`).val();
+            
+            console.log(`Variant ${variantIndex}:`, {
+                colorId,
+                sizesJson,
+                article,
+                productGroup,
+                brand,
+                heels,
+                tags,
+                category,
+                productCode,
+                imageCode
+            });
+            
+            if (sizesJson) {
+                try {
+                    const sizes = JSON.parse(sizesJson);
+                    console.log(`Sizes parsed for variant ${variantIndex}:`, sizes);
+                    if (sizes.length > 0) {
+                        variants.push({
+                            color_id: colorId,
+                            article: article,
+                            product_group: productGroup,
+                            brand: brand,
+                            heels: heels,
+                            tags: tags,
+                            category: category,
+                            product_code: productCode,
+                            image_code: imageCode,
+                            sizes: sizes,
+                            variant_sizes_input: sizesJson
+                        });
+                    }
+                } catch(e) {
+                    console.error('Invalid JSON in sizes for variant ' + variantIndex + ':', sizesJson, e);
+                }
+            } else {
+                console.warn(`No sizes found for variant ${variantIndex}`);
+            }
+        });
+        
+        console.log('Total valid variants:', variants.length);
+        
+        if (variants.length === 0) {
+            Swal.fire({
+                icon: 'error',
+                title: 'No Valid Variants',
+                text: 'Please add at least one size with quantity to any variant.',
+                confirmButtonColor: '#667eea'
+            });
+            return false;
+        }
+        
+        console.log('All validations passed. Submitting...');
+        
+        // Prepare FormData for AJAX submission
+        const formData = new FormData();
+        formData.append('product_name', productName);
+        formData.append('supplier_id', supplierId);
+        formData.append('item_date', itemDate);
+        formData.append('purchase_rate', purchaseRate);
+        formData.append('gst_type', gstType);
+        formData.append('mrp', mrp);
+        formData.append('purchase_code', purchaseCode);
+        
+        // Add variant data with correct field naming
+        variants.forEach((variant, index) => {
+            formData.append(`variants[${index}][color_id]`, variant.color_id || '');
+            formData.append(`variants[${index}][article]`, variant.article || '');
+            formData.append(`variants[${index}][product_group]`, variant.product_group || '');
+            formData.append(`variants[${index}][brand]`, variant.brand || '');
+            formData.append(`variants[${index}][heels]`, variant.heels || '');
+            formData.append(`variants[${index}][tags]`, variant.tags || '');
+            formData.append(`variants[${index}][category]`, variant.category || '');
+            formData.append(`variants[${index}][product_code]`, variant.product_code || '');
+            formData.append(`variants[${index}][image_code]`, variant.image_code || '');
+            formData.append(`variants[${index}][variant_sizes_input]`, variant.variant_sizes_input);
+        });
+        
+        console.log('FormData ready to submit');
+        
+        // Submit via AJAX
+        $.ajax({
+            url: '<?= route_to('item.store') ?>',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                console.log('Success:', response);
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success!',
+                    text: 'All products created successfully!',
+                    confirmButtonColor: '#667eea'
+                }).then(function() {
+                    window.location.href = '<?= route_to('item.index') ?>';
+                });
+            },
+            error: function(xhr, status, error) {
+                console.error('Error:', xhr.responseText);
+                let errorMsg = 'An error occurred while saving products.';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMsg = xhr.responseJSON.message;
+                }
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: errorMsg,
+                    confirmButtonColor: '#667eea'
+                });
+            }
+        });
+        
+        return false;
     });
     
-    $('#supplier_id').select2({
-        theme: 'bootstrap-5',
-        width: '100%'
-    });
+    // Function to initialize Select2 for main dropdown fields
+    function initializeSelect2() {
+        $('#product_name').select2({
+            theme: 'bootstrap-5',
+            width: '100%'
+        });
+        
+        $('#supplier_id').select2({
+            theme: 'bootstrap-5',
+            width: '100%'
+        });
 
-    $('#color_id').select2({
-        theme: 'bootstrap-5',
-        width: '100%'
-    });
+        $('#color_id').select2({
+            theme: 'bootstrap-5',
+            width: '100%'
+        });
 
-    $('#product_group').select2({
-        theme: 'bootstrap-5',
-        width: '100%'
-    });
+        $('#product_group').select2({
+            theme: 'bootstrap-5',
+            width: '100%'
+        });
 
-    $('#brand').select2({
-        theme: 'bootstrap-5',
-        width: '100%'
-    });
+        $('#brand').select2({
+            theme: 'bootstrap-5',
+            width: '100%'
+        });
 
-    $('#heels').select2({
-        theme: 'bootstrap-5',
-        width: '100%'
-    });
+        $('#heels').select2({
+            theme: 'bootstrap-5',
+            width: '100%'
+        });
 
-    $('#tags').select2({
-        theme: 'bootstrap-5',
-        width: '100%'
-    });
+        $('#tags').select2({
+            theme: 'bootstrap-5',
+            width: '100%'
+        });
 
-    $('#category').select2({
-        theme: 'bootstrap-5',
-        width: '100%'
-    });
+        $('#category').select2({
+            theme: 'bootstrap-5',
+            width: '100%'
+        });
+    }
+    
+    // Initialize Select2 on page load (will be re-initialized after restore)
+    initializeSelect2();
 
     // Calculate GST Value based on Purchase Rate and GST Type
     function calculateGSTValue() {
@@ -618,9 +931,66 @@ $(document).ready(function() {
             // Re-enable product name selection when all variants are removed
             $('#product_name').prop('disabled', false);
         }
+        
+        // Auto-save state
+        saveVariantState();
     });
-});
-</script>
+    
+    // Auto-save when input values change
+    $(document).on('change keyup', '#product_name, #supplier_id, #item_date, #purchase_rate, #gst_type, #mrp, #purchase_code', function() {
+        // Debounce by using a timeout
+        clearTimeout(window.autoSaveTimeout);
+        window.autoSaveTimeout = setTimeout(function() {
+            saveVariantState();
+            // Show auto-save indicator
+            $('#autosaveIndicator').show();
+            $('#autosaveText').show();
+            setTimeout(function() {
+                $('#autosaveIndicator').fadeOut();
+                $('#autosaveText').fadeOut();
+            }, 2000);
+        }, 500);
+    });
+    
+    // Auto-save when variant fields change
+    $(document).on('change', '.variant-item input, .variant-item select, .variant-item textarea', function() {
+        clearTimeout(window.autoSaveTimeout);
+        window.autoSaveTimeout = setTimeout(function() {
+            saveVariantState();
+            // Show auto-save indicator
+            $('#autosaveIndicator').show();
+            $('#autosaveText').show();
+            setTimeout(function() {
+                $('#autosaveIndicator').fadeOut();
+                $('#autosaveText').fadeOut();
+            }, 2000);
+        }, 500);
+    });
+    
+    // Debug function to show form state
+    window.showDebugInfo = function() {
+        const debugInfo = {
+            productName: $('#product_name').val(),
+            supplierId: $('#supplier_id').val(),
+            itemDate: $('#item_date').val(),
+            purchaseRate: $('#purchase_rate').val(),
+            gstType: $('#gst_type').val(),
+            mrp: $('#mrp').val(),
+            purchaseCode: $('#purchase_code').val(),
+            variantCount: $('#variantsList').find('.variant-item').length
+        };
+        
+        console.table(debugInfo);
+        
+        Swal.fire({
+            title: 'Form State Debug',
+            html: '<pre style="text-align: left; background: #f5f5f5; padding: 10px; border-radius: 4px; overflow-x: auto;">' + 
+                  JSON.stringify(debugInfo, null, 2) + '</pre>',
+            icon: 'info',
+            confirmButtonColor: '#667eea'
+        });
+    };
+});</script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
 <?= $this->endSection() ?>
 

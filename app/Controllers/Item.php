@@ -73,65 +73,205 @@ class Item extends BaseController
         $session = session();
         
         if (!$session->get('isLoggedIn')) {
+            if ($this->request->isAJAX()) {
+                return $this->response->setJSON(['success' => false, 'message' => 'Not logged in']);
+            }
             return redirect()->route('login');
         }
 
-        $product_code = $this->request->getPost('product_code');
+        // Log all POST data for debugging
+        $allPostData = $this->request->getPost();
+        log_message('info', '=== FORM SUBMISSION DEBUG ===');
+        log_message('info', 'All POST data: ' . json_encode($allPostData));
+
         $product_name = $this->request->getPost('product_name');
         $date = $this->request->getPost('item_date');
         $supplier_id = $this->request->getPost('supplier_id');
-        $color_id = $this->request->getPost('color_id');
-        $article = $this->request->getPost('article');
-        $product_group = $this->request->getPost('product_group');
-        $brand = $this->request->getPost('brand');
-        $heels = $this->request->getPost('heels');
-        $tags = $this->request->getPost('tags');
-        $category = $this->request->getPost('category');
         $purchase_rate = $this->request->getPost('purchase_rate');
-        $gst = $this->request->getPost('gst');
+        $gst_type = $this->request->getPost('gst_type');
         $mrp = $this->request->getPost('mrp');
         $purchase_code = $this->request->getPost('purchase_code');
-        $from_size = $this->request->getPost('from_size');
-        $img_code = $this->request->getPost('img_code');
+
+        log_message('info', 'Product Name: ' . ($product_name ?? 'NULL'));
+        log_message('info', 'Supplier ID: ' . ($supplier_id ?? 'NULL'));
+        log_message('info', 'Date: ' . ($date ?? 'NULL'));
+
+        // Get variants data
+        $variants = $this->request->getPost('variants');
+        log_message('info', 'Variants Count: ' . (is_array($variants) ? count($variants) : 0));
 
         // Validate input
-        if (empty($product_code) || empty($product_name)) {
-            $session->setFlashdata('error', 'Product code and name are required');
+        if (empty($product_name)) {
+            log_message('error', 'Validation failed: Product name is required');
+            if ($this->request->isAJAX()) {
+                return $this->response->setJSON(['success' => false, 'message' => 'Product name is required']);
+            }
+            // Store form data in session for restoration
+            $session->setFlashdata('formData', json_encode([
+                'productName' => $product_name,
+                'itemDate' => $date,
+                'supplierId' => $supplier_id,
+                'purchaseRate' => $purchase_rate,
+                'gstType' => $gst_type,
+                'mrp' => $mrp,
+                'purchaseCode' => $purchase_code,
+                'variants' => $variants
+            ]));
+            $session->setFlashdata('error', 'Product name is required');
+            return redirect()->route('item.create');
+        }
+
+        if (empty($supplier_id)) {
+            log_message('error', 'Validation failed: Supplier is required');
+            if ($this->request->isAJAX()) {
+                return $this->response->setJSON(['success' => false, 'message' => 'Supplier is required']);
+            }
+            // Store form data in session for restoration
+            $session->setFlashdata('formData', json_encode([
+                'productName' => $product_name,
+                'itemDate' => $date,
+                'supplierId' => $supplier_id,
+                'purchaseRate' => $purchase_rate,
+                'gstType' => $gst_type,
+                'mrp' => $mrp,
+                'purchaseCode' => $purchase_code,
+                'variants' => $variants
+            ]));
+            $session->setFlashdata('error', 'Supplier is required');
+            return redirect()->route('item.create');
+        }
+
+        if (empty($variants) || !is_array($variants)) {
+            log_message('error', 'Validation failed: At least one variant is required');
+            if ($this->request->isAJAX()) {
+                return $this->response->setJSON(['success' => false, 'message' => 'At least one variant is required']);
+            }
+            // Store form data in session for restoration
+            $session->setFlashdata('formData', json_encode([
+                'productName' => $product_name,
+                'itemDate' => $date,
+                'supplierId' => $supplier_id,
+                'purchaseRate' => $purchase_rate,
+                'gstType' => $gst_type,
+                'mrp' => $mrp,
+                'purchaseCode' => $purchase_code,
+                'variants' => $variants
+            ]));
+            $session->setFlashdata('error', 'At least one variant is required');
             return redirect()->route('item.create');
         }
 
         try {
-            $result = $this->accessDB->createItem(
-                $product_code,
-                $product_name,
-                $date,
-                $supplier_id,
-                $color_id,
-                $article,
-                $product_group,
-                $brand,
-                $heels,
-                $tags,
-                $category,
-                $purchase_rate,
-                $gst,
-                $mrp,
-                $purchase_code,
-                $from_size,
-                $img_code
-            );
+            $productsCreated = 0;
+            $baseCodePrefix = $this->generateBaseProductCode($product_name);
 
-            if ($result) {
-                $session->setFlashdata('success', 'Item created successfully');
+            // Process each variant
+            foreach ($variants as $variantKey => $variant) {
+                // Skip if no sizes selected
+                if (empty($variant['variant_sizes_input'])) {
+                    continue;
+                }
+
+                // Parse variant sizes JSON
+                $variantSizes = json_decode($variant['variant_sizes_input'], true);
+                if (!is_array($variantSizes)) {
+                    continue;
+                }
+
+                // For each size, create N products based on quantity
+                foreach ($variantSizes as $sizeData) {
+                    $quantity = isset($sizeData['quantity']) ? (int)$sizeData['quantity'] : 0;
+                    
+                    if ($quantity <= 0) {
+                        continue;
+                    }
+
+                    // Create N products for this size-quantity combination
+                    for ($i = 1; $i <= $quantity; $i++) {
+                        $uniqueProductCode = $this->generateUniqueProductCode(
+                            $baseCodePrefix,
+                            $sizeData['name'],
+                            $i
+                        );
+
+                        // Create product record
+                        $result = $this->accessDB->createItem(
+                            $uniqueProductCode,                          // product_code
+                            $product_name,                               // product_name
+                            $date,                                       // item_date
+                            $supplier_id,                                // supplier_id
+                            $variant['color_id'] ?? null,                // color_id
+                            $variant['article'] ?? null,                 // article
+                            $variant['product_group'] ?? null,           // product_group
+                            $variant['brand'] ?? null,                   // brand
+                            $variant['heels'] ?? null,                   // heels
+                            $variant['tags'] ?? null,                    // tags
+                            $variant['category'] ?? null,                // category
+                            $purchase_rate,                              // purchase_rate
+                            $gst_type,                                   // gst
+                            $mrp,                                        // mrp
+                            $purchase_code,                              // purchase_code
+                            $sizeData['name'],                           // size_from (store size name)
+                            $variant['image_code'] ?? null               // img_code
+                        );
+
+                        if ($result) {
+                            $productsCreated++;
+                        }
+                    }
+                }
+            }
+
+            if ($productsCreated > 0) {
+                log_message('info', "Successfully created $productsCreated product(s)");
+                if ($this->request->isAJAX()) {
+                    return $this->response->setJSON([
+                        'success' => true, 
+                        'message' => "Successfully created $productsCreated product(s)"
+                    ]);
+                }
+                $session->setFlashdata('success', "Successfully created $productsCreated product(s)");
                 return redirect()->route('item.index');
             } else {
-                $session->setFlashdata('error', 'Failed to create item');
+                log_message('error', 'No products created - variant data issue');
+                if ($this->request->isAJAX()) {
+                    return $this->response->setJSON(['success' => false, 'message' => 'No products were created. Please check your variant data.']);
+                }
+                $session->setFlashdata('error', 'No products were created. Please check your variant data.');
                 return redirect()->route('item.create');
             }
         } catch (\Exception $e) {
+            log_message('error', 'Exception in store(): ' . $e->getMessage());
+            if ($this->request->isAJAX()) {
+                return $this->response->setJSON(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
+            }
             $session->setFlashdata('error', 'Error: ' . $e->getMessage());
             return redirect()->route('item.create');
         }
+    }
+
+    /**
+     * Generate base product code from product name
+     */
+    private function generateBaseProductCode($productName)
+    {
+        // Take first 3 letters of product name and convert to uppercase
+        $prefix = strtoupper(substr(str_replace(' ', '', $productName), 0, 3));
+        // Get current date in format YYYYMMDD
+        $datePrefix = date('YmdHis');
+        return $prefix . '-' . $datePrefix;
+    }
+
+    /**
+     * Generate unique product code with size and sequence number
+     */
+    private function generateUniqueProductCode($baseCode, $sizeName, $sequence)
+    {
+        // Format: BASEPREFIX-SIZE-SEQUENCE
+        // E.g., SHO-20240115143022-10-001
+        $sizeShort = strtoupper(substr(str_replace(' ', '', $sizeName), 0, 3));
+        $sequenceFormatted = str_pad($sequence, 3, '0', STR_PAD_LEFT);
+        return $baseCode . '-' . $sizeShort . '-' . $sequenceFormatted;
     }
 
     public function edit($id)
@@ -505,7 +645,7 @@ class Item extends BaseController
                                 <!-- Sizes with quantity inputs will be populated here in single row -->
                             </div>
                             <!-- Hidden input to store selected sizes with quantities as JSON -->
-                            <input type="hidden" name="variants[' . $variantCount . '][sizes]" class="variant-sizes-input" value="">
+                            <input type="hidden" name="variants[' . $variantCount . '][variant_sizes_input]" class="variant-sizes-input" value="">
                         </div>
                     </div>
                 </div>
