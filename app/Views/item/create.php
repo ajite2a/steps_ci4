@@ -42,7 +42,7 @@
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 
-    <form action="<?= route_to('item.store') ?>" method="post">
+    <form action="<?= route_to('item.store') ?>" method="post" id="mainForm">
         <?= csrf_field() ?>
 
         <!-- Header Section -->
@@ -258,9 +258,36 @@ $(document).ready(function() {
         console.log('Variant state saved to localStorage');
     }
     
+    // Function to reset form to defaults (for fresh page visits)
+    function resetForm() {
+        console.log('Resetting form to defaults');
+        $('#product_name').val('');
+        $('#supplier_id').val('');
+        $('#item_date').val('<?= date('Y-m-d') ?>');
+        $('#purchase_rate').val('');
+        $('#gst_type').val('');
+        $('#gst_value').val('');
+        $('#mrp').val('');
+        $('#purchase_code').val('');
+        $('#variantsList').html('<p class="text-muted">No variants added yet. Click the button below to add variants.</p>');
+    }
+    
     // Function to restore variant state from session data or localStorage
     function restoreVariantState() {
         let stateData = null;
+        
+        // Only restore if there's an error message (meaning form submission failed)
+        // Do NOT restore on fresh page visits
+        const hasError = <?= session()->getFlashdata('error') ? 'true' : 'false' ?>;
+        
+        if (!hasError) {
+            console.log('Fresh page visit - resetting form to defaults');
+            resetForm();
+            localStorage.removeItem('stepsCi4VariantState');
+            return;
+        }
+        
+        console.log('Error found - attempting to restore previous data');
         
         // First, try to restore from session (PHP flashdata)
         if (formDataFromSession) {
@@ -286,8 +313,8 @@ $(document).ready(function() {
             }
         }
         
-        // Restore the data
-        if (stateData) {
+        // Restore the data only if there's an error
+        if (stateData && hasError) {
             console.log('Restoring state:', stateData);
             $('#product_name').val(stateData.productName);
             $('#supplier_id').val(stateData.supplierId);
@@ -306,10 +333,10 @@ $(document).ready(function() {
                 // Recalculate GST after restore
                 calculateGSTValue();
             }, 100);
-            
-            // Clear localStorage after restoration
-            localStorage.removeItem('stepsCi4VariantState');
         }
+        
+        // Always clear localStorage after processing
+        localStorage.removeItem('stepsCi4VariantState');
     }
     
     // Restore variants on page load
@@ -321,6 +348,24 @@ $(document).ready(function() {
             initializeSelect2();
         }, 200);
     }, 500);
+    
+    // Prevent default form submission completely
+    $('#mainForm').on('submit', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        console.log('Default form submit prevented - use the Save button instead');
+        return false;
+    });
+    
+    // Prevent form submission on Enter key in any field
+    $('#mainForm').on('keypress', function(e) {
+        if (e.which === 13) { // Enter key
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        }
+    });
     
     // Direct AJAX submission instead of form submit
     $('#submitBtn').on('click', function(e) {
@@ -473,7 +518,10 @@ $(document).ready(function() {
             formData.append(`variants[${index}][variant_sizes_input]`, variant.variant_sizes_input);
         });
         
-        console.log('FormData ready to submit');
+        
+        // Show loading state
+        const originalText = $('#submitBtn').html();
+        $('#submitBtn').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>Saving...');
         
         // Submit via AJAX
         $.ajax({
@@ -484,6 +532,8 @@ $(document).ready(function() {
             contentType: false,
             success: function(response) {
                 console.log('Success:', response);
+                // Clear localStorage after successful submission
+                localStorage.removeItem('stepsCi4VariantState');
                 Swal.fire({
                     icon: 'success',
                     title: 'Success!',
@@ -495,16 +545,25 @@ $(document).ready(function() {
             },
             error: function(xhr, status, error) {
                 console.error('Error:', xhr.responseText);
+                // Save current state to localStorage before showing error
+                saveVariantState();
+                
                 let errorMsg = 'An error occurred while saving products.';
                 if (xhr.responseJSON && xhr.responseJSON.message) {
                     errorMsg = xhr.responseJSON.message;
                 }
+                
+                // Show error but keep form visible with data
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
                     text: errorMsg,
                     confirmButtonColor: '#667eea'
                 });
+            },
+            complete: function() {
+                // Restore button state
+                $('#submitBtn').prop('disabled', false).html(originalText);
             }
         });
         
