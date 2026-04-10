@@ -756,5 +756,39 @@ class AccessDB
     {
         return $this->addOrGetItem('product_groups', 'group_name', $productGroupName, 'product group');
     }
+
+    /**
+     * Get items by article
+     */
+    public function getItemsByArticle($article)
+    {
+        $stmt = $this->pdo->prepare("SELECT * FROM items WHERE article = :article");
+        $stmt->execute([':article' => $article]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $this->freeStmt($stmt);
+        
+        // Get supplier and color names separately
+        if (!empty($rows)) {
+            foreach ($rows as &$row) {
+                // Get supplier name if supplier_id exists
+                if (!empty($row['supplier_id'])) {
+                    $supplier = $this->getSupplierById($row['supplier_id']);
+                    $row['supplier_name'] = $supplier ? $supplier['supplier_name'] : null;
+                } else {
+                    $row['supplier_name'] = null;
+                }
+                
+                // Get color name if color_id exists
+                if (!empty($row['color_id'])) {
+                    $color = $this->getColorById($row['color_id']);
+                    $row['color_name'] = $color ? $color['color_name'] : null;
+                } else {
+                    $row['color_name'] = null;
+                }
+            }
+        }
+        
+        return $rows;
+    }
 }
 ?>

@@ -669,7 +669,7 @@ $(document).ready(function() {
         // AJAX call to add item to database
         $.ajax({
             type: 'POST',
-            url: '<?= base_url('item/addItemValue') ?>',
+            url: '/item/addItemValue',
             data: {
                 type: currentItemType,
                 value: itemValue
@@ -814,6 +814,33 @@ $(document).ready(function() {
 
     // Handle add variant button
     let variantCount = 0;
+    
+    // Function to generate sequential alphanumeric product code (8 chars: XXXX####)
+    // Format: AAAA0001, AAAA0002, ..., AAAA9999, AAAB0001, etc.
+    // 4 letters (A-Z) + 4 digits (0001-9999)
+    window.generateProductCode = function() {
+        const variantItems = $('#variantsList').find('.variant-item');
+        const sequence = variantItems.length + 1; // Current variant number (1-based)
+        
+        // Split into letter combination and digit parts
+        // Sequences 1-9999 use AAAA, 10000-19999 use AAAB, etc.
+        const letterCombIndex = Math.floor((sequence - 1) / 9999); // Which 4-letter combo (0, 1, 2, etc.)
+        const digitPart = ((sequence - 1) % 9999) + 1; // 1-9999
+        
+        // Generate 4-letter combination from index
+        const letters = [];
+        let temp = letterCombIndex;
+        for (let i = 0; i < 4; i++) {
+            letters.unshift(String.fromCharCode(65 + (temp % 26))); // 65 = 'A'
+            temp = Math.floor(temp / 26);
+        }
+        
+        // Format: 4 letters + 4-digit number (AAAA0001, AAAA0002, ... ZZZZ9999)
+        const productCode = letters.join('') + String(digitPart).padStart(4, '0');
+        
+        return productCode;
+    };
+    
     $('#addVariantBtn').on('click', function(e) {
         e.preventDefault();
         
@@ -833,7 +860,7 @@ $(document).ready(function() {
         // Get variant HTML via AJAX
         $.ajax({
             type: 'GET',
-            url: '<?= base_url('item/getVariantForm') ?>',
+            url: '/item/getVariantForm',
             data: { variantCount: variantCount, productName: productNameValue },
             dataType: 'json',
             success: function(response) {
@@ -845,6 +872,10 @@ $(document).ready(function() {
                         $('#product_name').prop('disabled', true).data('previous-value', $('#product_name').val());
                     }
                     $variantsList.append(response.html);
+                    
+                    // Auto-generate and populate product code (in hidden field)
+                    const autoProductCode = window.generateProductCode();
+                    $(`#variant-${variantCount}`).find('.product-code-hidden').val(autoProductCode);
                     
                     // Initialize Select2 for newly added select fields
                     $(`#variant-${variantCount}`).find('.select2-variant-color').select2({
@@ -989,11 +1020,37 @@ $(document).ready(function() {
             $('#variantsList').html('<p class="text-muted">No variants added yet. Click the button below to add variants.</p>');
             // Re-enable product name selection when all variants are removed
             $('#product_name').prop('disabled', false);
+        } else {
+            // Regenerate product codes for remaining variants to eliminate gaps
+            $('#variantsList').find('.variant-item').each(function(index) {
+                const newProductCode = window.generateProductCodeAtIndex(index);
+                $(this).find('.product-code-hidden').val(newProductCode);
+            });
         }
         
         // Auto-save state
         saveVariantState();
     });
+
+    // Helper function to generate code for a specific index (0-based)
+    window.generateProductCodeAtIndex = function(zeroBasedIndex) {
+        const sequence = zeroBasedIndex + 1; // Convert to 1-based
+        
+        // Split into letter combination and digit parts
+        const letterCombIndex = Math.floor((sequence - 1) / 9999);
+        const digitPart = ((sequence - 1) % 9999) + 1;
+        
+        // Generate 4-letter combination from index
+        const letters = [];
+        let temp = letterCombIndex;
+        for (let i = 0; i < 4; i++) {
+            letters.unshift(String.fromCharCode(65 + (temp % 26)));
+            temp = Math.floor(temp / 26);
+        }
+        
+        // Return 8-char code: XXXX####
+        return letters.join('') + String(digitPart).padStart(4, '0');
+    };
     
     // Auto-save when input values change
     $(document).on('change keyup', '#product_name, #supplier_id, #item_date, #purchase_rate, #gst_type, #mrp, #purchase_code', function() {
@@ -1024,6 +1081,58 @@ $(document).ready(function() {
                 $('#autosaveText').fadeOut();
             }, 2000);
         }, 500);
+    });
+
+    // Handle article input blur event to check if article already exists
+    $(document).on('blur', 'input[name*="[article]"]', function() {
+        const $input = $(this);
+        const article = $input.val().trim();
+        
+        // Only check if article is not empty
+        if (article.length > 0) {
+            // Make AJAX call to check if article exists (using relative URL)
+            $.ajax({
+                type: 'POST',
+                url: '/item/checkArticleExists',
+                data: {
+                    article: article
+                },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success && response.exists && response.items && response.items.length > 0) {
+                        // Article exists - show popup with details
+                        let itemsHtml = '<table class="table table-sm table-striped">';
+                        itemsHtml += '<thead><tr><th>Product Code</th><th>Product Name</th><th>Supplier</th><th>Size</th><th>Color</th></tr></thead>';
+                        itemsHtml += '<tbody>';
+                        
+                        response.items.forEach(function(item) {
+                            itemsHtml += '<tr>';
+                            itemsHtml += '<td>' + escapeHtml(item.product_code) + '</td>';
+                            itemsHtml += '<td>' + escapeHtml(item.product_name) + '</td>';
+                            itemsHtml += '<td>' + escapeHtml(item.supplier_name || '—') + '</td>';
+                            itemsHtml += '<td>' + escapeHtml(item.size_from || '—') + '</td>';
+                            itemsHtml += '<td>' + escapeHtml(item.color_name || '—') + '</td>';
+                            itemsHtml += '</tr>';
+                        });
+                        
+                        itemsHtml += '</tbody></table>';
+                        
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Article Already Exists!',
+                            html: '<p>This article is already added in the following item(s):</p>' + itemsHtml,
+                            confirmButtonText: 'OK',
+                            confirmButtonColor: '#667eea',
+                            width: '800px'
+                        });
+                    }
+                },
+                error: function() {
+                    // Silently fail - don't show error for AJAX check
+                    console.error('Error checking article');
+                }
+            });
+        }
     });
     
     // Debug function to show form state
