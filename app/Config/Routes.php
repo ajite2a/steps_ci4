@@ -49,3 +49,5 @@ $routes->post('items/(:num)/delete', 'Item::delete/$1', ['as' => 'item.delete'])
 $routes->post('item/addItemValue', 'Item::addItemValue', ['as' => 'item.addItemValue']);
 $routes->get('item/getVariantForm', 'Item::getVariantForm', ['as' => 'item.getVariantForm']);
 $routes->post('item/checkArticleExists', 'Item::checkArticleExists', ['as' => 'item.checkArticleExists']);
+$routes->post('item/checkImageExists', 'Item::checkImageExists', ['as' => 'item.checkImageExists']);
+$routes->post('item/uploadVariantImage', 'Item::uploadVariantImage', ['as' => 'item.uploadVariantImage']);

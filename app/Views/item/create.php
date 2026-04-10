@@ -976,17 +976,99 @@ $(document).ready(function() {
                         $variantSizesInput.val(JSON.stringify(selectedSizes));
                     });
 
-                    // Handle image preview
+                    // Handle image code input - check if image exists
+                    $(`#variant-${variantCount}`).find('input[name*="[image_code]"]').on('blur', function() {
+                        const imageCode = $(this).val().trim();
+                        const $variantDiv = $(this).closest('.variant-item');
+                        
+                        if (imageCode.length > 0) {
+                            // Check if image exists
+                            $.ajax({
+                                type: 'POST',
+                                url: '/item/checkImageExists',
+                                data: { image_code: imageCode },
+                                dataType: 'json',
+                                success: function(response) {
+                                    if (response.success && response.exists && response.imageUrl) {
+                                        // Image found - show preview
+                                        $variantDiv.find('.variant-image-preview').attr('src', response.imageUrl);
+                                    }
+                                },
+                                error: function() {
+                                    console.error('Error checking image');
+                                }
+                            });
+                        }
+                    });
+
+                    // Handle image file selection and upload
                     $(`#variant-${variantCount}`).find('.variant-image-input').on('change', function(e) {
                         const file = e.target.files[0];
-                        if (file) {
-                            const reader = new FileReader();
-                            reader.onload = function(event) {
-                                $(`#variant-${variantCount}`).find('.variant-image-preview')
-                                    .attr('src', event.target.result);
-                            };
-                            reader.readAsDataURL(file);
+                        let imageCode = $(`#variant-${variantCount}`).find('input[name*="[image_code]"]').val().trim();
+                        
+                        if (!file) {
+                            return;
                         }
+
+                        // If no image code provided, generate one from filename and timestamp
+                        if (!imageCode) {
+                            const fileName = file.name.split('.')[0]; // Get filename without extension
+                            const timestamp = new Date().getTime();
+                            imageCode = (fileName ? fileName + '-' : 'IMG-') + timestamp;
+                            // Update the image code field
+                            $(`#variant-${variantCount}`).find('input[name*="[image_code]"]').val(imageCode);
+                        }
+
+                        // Show preview locally
+                        const reader = new FileReader();
+                        reader.onload = function(event) {
+                            $(`#variant-${variantCount}`).find('.variant-image-preview')
+                                .attr('src', event.target.result);
+                        };
+                        reader.readAsDataURL(file);
+
+                        // Upload file via AJAX
+                        const formData = new FormData();
+                        formData.append('image_code', imageCode);
+                        formData.append('image', file);
+
+                        $.ajax({
+                            type: 'POST',
+                            url: '/item/uploadVariantImage',
+                            data: formData,
+                            processData: false,
+                            contentType: false,
+                            success: function(response) {
+                                if (response.success) {
+                                    // Update preview with uploaded image
+                                    $(`#variant-${variantCount}`).find('.variant-image-preview')
+                                        .attr('src', response.imageUrl);
+                                    
+                                    Swal.fire({
+                                        icon: 'success',
+                                        title: 'Image Uploaded',
+                                        text: 'Image uploaded successfully!',
+                                        confirmButtonColor: '#667eea',
+                                        timer: 1500
+                                    });
+                                } else {
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'Upload Failed',
+                                        text: response.message || 'Failed to upload image',
+                                        confirmButtonColor: '#667eea'
+                                    });
+                                }
+                            },
+                            error: function() {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: 'An error occurred while uploading the image',
+                                    confirmButtonColor: '#667eea'
+                                });
+                            }
+                        });
                     });
 
                     // Handle image click to open file picker

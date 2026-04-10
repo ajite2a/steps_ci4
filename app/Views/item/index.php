@@ -8,6 +8,29 @@
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.10/dist/sweetalert2.min.css" rel="stylesheet">
 <?= $this->endSection() ?>
 
+<?php
+/**
+ * Helper function to get image URL by checking all supported extensions
+ */
+$getImageUrl = function($imageCode) {
+    if (empty($imageCode)) {
+        return null;
+    }
+    
+    $uploadDir = FCPATH . 'uploads/images/';
+    $imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+    
+    foreach ($imageExtensions as $ext) {
+        $filePath = $uploadDir . $imageCode . '.' . $ext;
+        if (file_exists($filePath)) {
+            return base_url('uploads/images/' . $imageCode . '.' . $ext);
+        }
+    }
+    
+    return null;
+};
+?>
+
 <?= $this->section('content') ?>
 
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -29,6 +52,7 @@
                 <table id="itemsTable" class="table table-hover align-middle">
                     <thead class="table-light">
                         <tr>
+                            <th>Image</th>
                             <th>Product Code</th>
                             <th>Product Name</th>
                             <th>Supplier</th>
@@ -41,7 +65,25 @@
                     </thead>
                     <tbody>
                         <?php foreach ($items as $item): ?>
+                            <?php 
+                                $imageUrl = $getImageUrl($item['img_code'] ?? '');
+                            ?>
                             <tr>
+                                <td>
+                                    <?php if (!empty($imageUrl)): ?>
+                                        <img src="<?= $imageUrl ?>" 
+                                             alt="<?= esc($item['product_name']) ?>" 
+                                             style="height: 50px; width: 50px; object-fit: cover; border-radius: 4px; cursor: pointer;" 
+                                             class="item-image-preview"
+                                             data-bs-toggle="modal" 
+                                             data-bs-target="#imageModal"
+                                             onclick="showImageModal('<?= $imageUrl ?>', '<?= esc($item['product_name']) ?>')">
+                                    <?php else: ?>
+                                        <div style="height: 50px; width: 50px; background-color: #e9ecef; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #999; font-size: 12px;">
+                                            No Image
+                                        </div>
+                                    <?php endif; ?>
+                                </td>
                                 <td><strong><?= esc($item['product_code']) ?></strong></td>
                                 <td><?= esc($item['product_name']) ?></td>
                                 <td><?= esc($item['supplier_name'] ?? '-') ?></td>
@@ -62,6 +104,21 @@
     </div>
 <?php endif; ?>
 
+<!-- Image Preview Modal -->
+<div class="modal fade" id="imageModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="imageModalTitle">Image Preview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="imageModalImage" src="" alt="Image Preview" style="max-width: 100%; height: auto; border-radius: 8px;">
+            </div>
+        </div>
+    </div>
+</div>
+
 <?= $this->endSection() ?>
 
 <?= $this->section('js') ?>
@@ -73,15 +130,27 @@
     <!-- SweetAlert2 JS -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.10/dist/sweetalert2.all.min.js"></script>
     <script>
+        // Function to show image in modal
+        window.showImageModal = function(imagePath, productName) {
+            $('#imageModalTitle').text(productName);
+            $('#imageModalImage').attr('src', imagePath);
+            // Modal will be shown automatically via data-bs-toggle
+        };
+
         $(document).ready(function() {
             $('#itemsTable').DataTable({
                 responsive: true,
                 pageLength: 10,
                 lengthMenu: [5, 10, 25, 50],
-                order: [[0, 'asc']],
+                order: [[1, 'asc']],  // Changed from 0 to 1 because Image column is now first
                 columnDefs: [
                     {
                         targets: -1,
+                        orderable: false,
+                        searchable: false
+                    },
+                    {
+                        targets: 0,  // Image column - not sortable/searchable
                         orderable: false,
                         searchable: false
                     }

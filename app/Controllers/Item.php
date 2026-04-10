@@ -666,4 +666,123 @@ class Item extends BaseController
             'message' => 'Article does not exist'
         ]);
     }
+
+    /**
+     * Check if image exists by image code and return preview URL
+     */
+    public function checkImageExists()
+    {
+        $imageCode = $this->request->getPost('image_code');
+        
+        if (empty($imageCode)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'exists' => false,
+                'message' => 'Image code is empty'
+            ]);
+        }
+
+        // Define upload directory (use public folder for web accessibility)
+        $uploadDir = FCPATH . 'uploads/images/';
+        
+        // Sanitize image code to prevent directory traversal
+        $imageCode = preg_replace('/[^a-zA-Z0-9_-]/', '', $imageCode);
+        
+        // Search for image files with this code
+        $imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+        $foundImage = null;
+        $imageUrl = null;
+
+        foreach ($imageExtensions as $ext) {
+            $filePath = $uploadDir . $imageCode . '.' . $ext;
+            if (file_exists($filePath)) {
+                $foundImage = $filePath;
+                $imageUrl = base_url('uploads/images/' . $imageCode . '.' . $ext);
+                break;
+            }
+        }
+
+        if ($foundImage) {
+            return $this->response->setJSON([
+                'success' => true,
+                'exists' => true,
+                'message' => 'Image found',
+                'imageUrl' => $imageUrl
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'exists' => false,
+            'message' => 'Image does not exist'
+        ]);
+    }
+
+    /**
+     * Upload variant image
+     */
+    public function uploadVariantImage()
+    {
+        $imageCode = $this->request->getPost('image_code');
+        $file = $this->request->getFile('image');
+
+        if (empty($imageCode) || !$file || !$file->isValid()) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Invalid image code or file'
+            ]);
+        }
+
+        try {
+            // Define upload directory (use public folder for web accessibility)
+            $uploadDir = FCPATH . 'uploads/images/';
+            
+            // Create directory if it doesn't exist
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0755, true);
+            }
+
+            // Sanitize image code
+            $imageCode = preg_replace('/[^a-zA-Z0-9_-]/', '', $imageCode);
+            
+            // Get file extension
+            $ext = $file->getClientExtension();
+            
+            // Validate file extension
+            $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+            if (!in_array(strtolower($ext), $allowedExtensions)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Invalid file type. Allowed: JPG, PNG, GIF, WebP'
+                ]);
+            }
+
+            // Delete existing file if it exists
+            $imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+            foreach ($imageExtensions as $oldExt) {
+                $oldFilePath = $uploadDir . $imageCode . '.' . $oldExt;
+                if (file_exists($oldFilePath)) {
+                    unlink($oldFilePath);
+                }
+            }
+
+            // Move file
+            $newFileName = $imageCode . '.' . $ext;
+            $file->move($uploadDir, $newFileName);
+
+            $imageUrl = base_url('uploads/images/' . $newFileName);
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Image uploaded successfully',
+                'imageUrl' => $imageUrl,
+                'fileName' => $newFileName
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Error uploading image: ' . $e->getMessage()
+            ]);
+        }
+    }
 }
