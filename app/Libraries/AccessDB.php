@@ -537,7 +537,7 @@ class AccessDB
 
     // ===== ITEM/PRODUCT CRUD METHODS =====
 
-    public function getAllItems()
+    public function getAllItems(array $filters = [])
     {
         $stmt = $this->pdo->query("SELECT * FROM items ORDER BY product_code ASC");
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -562,9 +562,70 @@ class AccessDB
                     $row['color_name'] = null;
                 }
             }
+            unset($row);
         }
-        
-        return $rows;
+
+        if (empty(array_filter($filters, static fn ($value) => $value !== null && $value !== ''))) {
+            return $rows;
+        }
+
+        return array_values(array_filter($rows, static function ($row) use ($filters) {
+            $valueOf = static function (string $key) use ($row): string {
+                return trim((string) ($row[$key] ?? ''));
+            };
+
+            if (!empty($filters['color_id']) && $valueOf('color_id') !== trim((string) $filters['color_id'])) {
+                return false;
+            }
+
+            if (!empty($filters['product_group']) && $valueOf('product_group') !== trim((string) $filters['product_group'])) {
+                return false;
+            }
+
+            if (!empty($filters['supplier_id']) && $valueOf('supplier_id') !== trim((string) $filters['supplier_id'])) {
+                return false;
+            }
+
+            if (!empty($filters['tags']) && $valueOf('tags') !== trim((string) $filters['tags'])) {
+                return false;
+            }
+
+            if (!empty($filters['article']) && strcasecmp($valueOf('article'), trim((string) $filters['article'])) !== 0) {
+                return false;
+            }
+
+            if (!empty($filters['brand']) && $valueOf('brand') !== trim((string) $filters['brand'])) {
+                return false;
+            }
+
+            $createdAt = $row['created_at'] ?? null;
+            if (!empty($filters['created_from'])) {
+                $createdTimestamp = $createdAt ? strtotime((string) $createdAt) : false;
+                $fromTimestamp = strtotime(trim((string) $filters['created_from']) . ' 00:00:00');
+                if ($createdTimestamp === false || $createdTimestamp < $fromTimestamp) {
+                    return false;
+                }
+            }
+
+            if (!empty($filters['created_to'])) {
+                $createdTimestamp = $createdAt ? strtotime((string) $createdAt) : false;
+                $toTimestamp = strtotime(trim((string) $filters['created_to']) . ' 23:59:59');
+                if ($createdTimestamp === false || $createdTimestamp > $toTimestamp) {
+                    return false;
+                }
+            }
+
+            $sizeValue = $valueOf('size_from');
+            if (!empty($filters['size_from']) && ($sizeValue === '' || strnatcasecmp($sizeValue, trim((string) $filters['size_from'])) < 0)) {
+                return false;
+            }
+
+            if (!empty($filters['size_to']) && ($sizeValue === '' || strnatcasecmp($sizeValue, trim((string) $filters['size_to'])) > 0)) {
+                return false;
+            }
+
+            return true;
+        }));
     }
 
     public function getItemById($id)

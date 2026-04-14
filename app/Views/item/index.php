@@ -33,16 +33,142 @@ $getImageUrl = function($imageCode) {
 
 <?= $this->section('content') ?>
 
+<?php $hasActiveFilters = !empty(array_filter($filters ?? [])); ?>
+
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2>Items / Products List</h2>
     <a href="<?= route_to('item.create') ?>" class="btn btn-gradient">+ Add Item</a>
 </div>
 
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" action="<?= route_to('item.index') ?>">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Color</label>
+                    <select name="color_id" class="form-select">
+                        <option value="">All Colors</option>
+                        <?php foreach ($colors as $color): ?>
+                            <option value="<?= esc($color['id']) ?>" <?= (($filters['color_id'] ?? '') == $color['id']) ? 'selected' : '' ?>>
+                                <?= esc($color['color_name']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">Group</label>
+                    <select name="product_group" class="form-select">
+                        <option value="">All Groups</option>
+                        <?php foreach ($product_groups as $group): ?>
+                            <option value="<?= esc($group['id']) ?>" <?= (($filters['product_group'] ?? '') == $group['id']) ? 'selected' : '' ?>>
+                                <?= esc($group['group_name']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">Supplier</label>
+                    <select name="supplier_id" class="form-select">
+                        <option value="">All Suppliers</option>
+                        <?php foreach ($suppliers as $supplier): ?>
+                            <option value="<?= esc($supplier['id']) ?>" <?= (($filters['supplier_id'] ?? '') == $supplier['id']) ? 'selected' : '' ?>>
+                                <?= esc($supplier['supplier_name']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">Tags</label>
+                    <select name="tags" class="form-select">
+                        <option value="">All Tags</option>
+                        <?php foreach ($tags as $tag): ?>
+                            <option value="<?= esc($tag['id']) ?>" <?= (($filters['tags'] ?? '') == $tag['id']) ? 'selected' : '' ?>>
+                                <?= esc($tag['tag_name']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">Article</label>
+                    <select name="article" class="form-select">
+                        <option value="">All Articles</option>
+                        <?php foreach ($articleOptions as $article): ?>
+                            <option value="<?= esc($article) ?>" <?= (($filters['article'] ?? '') === $article) ? 'selected' : '' ?>>
+                                <?= esc($article) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">Brand</label>
+                    <select name="brand" class="form-select">
+                        <option value="">All Brands</option>
+                        <?php foreach ($brands as $brand): ?>
+                            <option value="<?= esc($brand['id']) ?>" <?= (($filters['brand'] ?? '') == $brand['id']) ? 'selected' : '' ?>>
+                                <?= esc($brand['brand_name']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">Created Date From</label>
+                    <input type="date" name="created_from" class="form-control" value="<?= esc($filters['created_from'] ?? '') ?>">
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">Created Date To</label>
+                    <input type="date" name="created_to" class="form-control" value="<?= esc($filters['created_to'] ?? '') ?>">
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">Size From</label>
+                    <select name="size_from" class="form-select">
+                        <option value="">Any</option>
+                        <?php foreach ($sizeOptions as $size): ?>
+                            <option value="<?= esc($size) ?>" <?= (($filters['size_from'] ?? '') === (string) $size) ? 'selected' : '' ?>>
+                                <?= esc($size) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">Size To</label>
+                    <select name="size_to" class="form-select">
+                        <option value="">Any</option>
+                        <?php foreach ($sizeOptions as $size): ?>
+                            <option value="<?= esc($size) ?>" <?= (($filters['size_to'] ?? '') === (string) $size) ? 'selected' : '' ?>>
+                                <?= esc($size) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2 mt-4">
+                <button type="submit" class="btn btn-primary">Search</button>
+                <a href="<?= route_to('item.index') ?>" class="btn btn-outline-secondary">Clear All</a>
+                <span class="btn btn-light disabled">Results: <?= count($items) ?></span>
+            </div>
+        </form>
+    </div>
+</div>
+
 <?php if (empty($items)): ?>
     <div class="card text-center">
         <div class="card-body py-5">
-            <p class="card-text mb-3">No items found</p>
-            <a href="<?= route_to('item.create') ?>" class="btn btn-gradient">Create First Item</a>
+            <p class="card-text mb-3"><?= $hasActiveFilters ? 'No items found for the selected filters' : 'No items found' ?></p>
+            <?php if ($hasActiveFilters): ?>
+                <a href="<?= route_to('item.index') ?>" class="btn btn-outline-secondary">Clear Filters</a>
+            <?php else: ?>
+                <a href="<?= route_to('item.create') ?>" class="btn btn-gradient">Create First Item</a>
+            <?php endif; ?>
         </div>
     </div>
 <?php else: ?>
@@ -138,24 +264,26 @@ $getImageUrl = function($imageCode) {
         };
 
         $(document).ready(function() {
-            $('#itemsTable').DataTable({
-                responsive: true,
-                pageLength: 10,
-                lengthMenu: [5, 10, 25, 50],
-                order: [[1, 'asc']],  // Changed from 0 to 1 because Image column is now first
-                columnDefs: [
-                    {
-                        targets: -1,
-                        orderable: false,
-                        searchable: false
-                    },
-                    {
-                        targets: 0,  // Image column - not sortable/searchable
-                        orderable: false,
-                        searchable: false
-                    }
-                ]
-            });
+            if ($('#itemsTable').length) {
+                $('#itemsTable').DataTable({
+                    responsive: true,
+                    pageLength: 10,
+                    lengthMenu: [5, 10, 25, 50],
+                    order: [[1, 'asc']],
+                    columnDefs: [
+                        {
+                            targets: -1,
+                            orderable: false,
+                            searchable: false
+                        },
+                        {
+                            targets: 0,
+                            orderable: false,
+                            searchable: false
+                        }
+                    ]
+                });
+            }
 
             // Handle delete button
             $(document).on('click', '.delete-item', function() {

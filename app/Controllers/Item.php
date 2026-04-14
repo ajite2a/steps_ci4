@@ -23,10 +23,45 @@ class Item extends BaseController
             return redirect()->route('login');
         }
 
-        $items = $this->accessDB->getAllItems();
+        $filters = [
+            'color_id' => trim((string) $this->request->getGet('color_id')),
+            'product_group' => trim((string) $this->request->getGet('product_group')),
+            'supplier_id' => trim((string) $this->request->getGet('supplier_id')),
+            'tags' => trim((string) $this->request->getGet('tags')),
+            'article' => trim((string) $this->request->getGet('article')),
+            'brand' => trim((string) $this->request->getGet('brand')),
+            'created_from' => trim((string) $this->request->getGet('created_from')),
+            'created_to' => trim((string) $this->request->getGet('created_to')),
+            'size_from' => trim((string) $this->request->getGet('size_from')),
+            'size_to' => trim((string) $this->request->getGet('size_to')),
+        ];
+
+        $items = $this->accessDB->getAllItems($filters);
+        $allItems = $this->accessDB->getAllItems();
+
+        $articleOptions = array_values(array_unique(array_filter(array_map(
+            static fn ($item) => trim((string) ($item['article'] ?? '')),
+            $allItems
+        ))));
+        sort($articleOptions);
+
+        $sizeOptions = array_values(array_unique(array_filter(array_map(
+            static fn ($item) => trim((string) ($item['size_from'] ?? '')),
+            $allItems
+        ))));
+        natsort($sizeOptions);
+        $sizeOptions = array_values($sizeOptions);
 
         $data = [
             'items' => $items,
+            'filters' => $filters,
+            'colors' => $this->accessDB->getAllColors(),
+            'suppliers' => $this->accessDB->getAllSuppliers(),
+            'brands' => $this->accessDB->getAllBrands(),
+            'tags' => $this->accessDB->getAllTags(),
+            'product_groups' => $this->accessDB->getAllProductGroups(),
+            'articleOptions' => $articleOptions,
+            'sizeOptions' => $sizeOptions,
             'user_name' => $session->get('user_name'),
             'user_email' => $session->get('user_email')
         ];

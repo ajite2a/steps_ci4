@@ -139,7 +139,7 @@
     </nav>
 
     <!-- Main Content -->
-    <div class="container-fluid mt-5 mb-5">
+    <div class="container-fluid mt-2 mb-2">
         <?php if (session()->getFlashdata('success')): ?>
             <div class="alert alert-success alert-dismissible fade show" role="alert">
                 <?= session()->getFlashdata('success') ?>
