@@ -323,6 +323,9 @@ class Item extends BaseController
         $session = session();
         
         if (!$session->get('isLoggedIn')) {
+            if ($this->request->isAJAX()) {
+                return $this->response->setJSON(['success' => false, 'message' => 'Not logged in']);
+            }
             return redirect()->route('login');
         }
 
@@ -345,7 +348,29 @@ class Item extends BaseController
         $img_code = $this->request->getPost('img_code');
 
         if (empty($product_code) || empty($product_name)) {
-            $session->setFlashdata('error', 'Product code and name are required');
+            $message = 'Product code and name are required';
+            if ($this->request->isAJAX()) {
+                return $this->response->setJSON(['success' => false, 'message' => $message]);
+            }
+            $session->setFlashdata('error', $message);
+            return redirect()->route('item.edit', ['id' => $id]);
+        }
+
+        // Validate that MRP is not less than GST Value (purchase_rate with GST percentage)
+        $purchaseRateNum = (float) ($purchase_rate ?? 0);
+        $mrpNum = (float) ($mrp ?? 0);
+        $gstPercent = 0.0;
+        if (!empty($gst)) {
+            $gstPercent = (float) str_replace('%', '', (string) $gst);
+        }
+        $gstValue = $purchaseRateNum > 0 ? ($purchaseRateNum * (1 + ($gstPercent / 100))) : 0;
+
+        if ($mrpNum > 0 && $gstValue > 0 && $mrpNum < $gstValue) {
+            $message = 'MRP cannot be less than GST Value';
+            if ($this->request->isAJAX()) {
+                return $this->response->setJSON(['success' => false, 'message' => $message]);
+            }
+            $session->setFlashdata('error', $message);
             return redirect()->route('item.edit', ['id' => $id]);
         }
 
@@ -372,14 +397,25 @@ class Item extends BaseController
             );
 
             if ($result) {
+                if ($this->request->isAJAX()) {
+                    return $this->response->setJSON(['success' => true, 'message' => 'Item updated successfully']);
+                }
                 $session->setFlashdata('success', 'Item updated successfully');
                 return redirect()->route('item.index');
             } else {
-                $session->setFlashdata('error', 'Failed to update item');
+                $message = 'Failed to update item';
+                if ($this->request->isAJAX()) {
+                    return $this->response->setJSON(['success' => false, 'message' => $message]);
+                }
+                $session->setFlashdata('error', $message);
                 return redirect()->route('item.edit', ['id' => $id]);
             }
         } catch (\Exception $e) {
-            $session->setFlashdata('error', 'Error: ' . $e->getMessage());
+            $message = 'Error: ' . $e->getMessage();
+            if ($this->request->isAJAX()) {
+                return $this->response->setJSON(['success' => false, 'message' => $message]);
+            }
+            $session->setFlashdata('error', $message);
             return redirect()->route('item.edit', ['id' => $id]);
         }
     }
@@ -484,7 +520,7 @@ class Item extends BaseController
         $variantCount = $this->request->getGet('variantCount');
         $productName = $this->request->getGet('productName');
         
-        if (empty($variantCount)) {
+        if ($variantCount === null || $variantCount === '') {
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'Invalid variant count'
@@ -817,6 +853,51 @@ class Item extends BaseController
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'Error uploading image: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    public function getItemData($id)
+    {
+        $session = session();
+        
+        if (!$session->get('isLoggedIn')) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Not logged in']);
+        }
+
+        try {
+            $item = $this->accessDB->getItemById($id);
+
+            if (!$item) {
+                return $this->response->setJSON(['success' => false, 'message' => 'Item not found']);
+            }
+
+            // Get all reference data for dropdowns
+            $colors = $this->accessDB->getAllColors();
+            $brands = $this->accessDB->getAllBrands();
+            $heels = $this->accessDB->getAllHeels();
+            $tags = $this->accessDB->getAllTags();
+            $categories = $this->accessDB->getAllCategories();
+            $productGroups = $this->accessDB->getAllProductGroups();
+            $suppliers = $this->accessDB->getAllSuppliers();
+            $productNames = $this->accessDB->getAllProductNames();
+
+            return $this->response->setJSON([
+                'success' => true,
+                'item' => $item,
+                'colors' => $colors,
+                'brands' => $brands,
+                'heels' => $heels,
+                'tags' => $tags,
+                'categories' => $categories,
+                'productGroups' => $productGroups,
+                'suppliers' => $suppliers,
+                'productNames' => $productNames
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
             ]);
         }
     }

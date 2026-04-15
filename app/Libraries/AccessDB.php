@@ -400,6 +400,20 @@ class AccessDB
         return $masters;
     }
 
+    public function getAllProductNames()
+    {
+        $stmt = $this->pdo->query("SELECT DISTINCT master_name FROM size_masters ORDER BY master_name ASC");
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $this->freeStmt($stmt);
+
+        $names = [];
+        foreach ($results as $row) {
+            $names[] = $row['master_name'];
+        }
+
+        return $names;
+    }
+
     public function getSizeMasterById($id)
     {
         $stmt = $this->pdo->prepare("SELECT * FROM size_masters WHERE id = :id");
