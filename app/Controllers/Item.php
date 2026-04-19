@@ -346,6 +346,10 @@ class Item extends BaseController
         $purchase_code = $this->request->getPost('purchase_code');
         $from_size = $this->request->getPost('size_from');
         $img_code = $this->request->getPost('img_code');
+        $updateArticlewise = (string) $this->request->getPost('update_articlewise') === '1';
+        $originalProductName = $this->request->getPost('original_product_name');
+        $originalSupplierId = $this->request->getPost('original_supplier_id');
+        $originalArticle = $this->request->getPost('original_article');
 
         if (empty($product_code) || empty($product_name)) {
             $message = 'Product code and name are required';
@@ -375,32 +379,63 @@ class Item extends BaseController
         }
 
         try {
-            $result = $this->accessDB->updateItem(
-                $id,
-                $product_code,
-                $product_name,
-                $date,
-                $supplier_id,
-                $color_id,
-                $article,
-                $product_group,
-                $brand,
-                $heels,
-                $tags,
-                $category,
-                $purchase_rate,
-                $gst,
-                $mrp,
-                $purchase_code,
-                $from_size,
-                $img_code
-            );
+            $result = false;
+            $successMessage = 'Item updated successfully';
+
+            if ($updateArticlewise) {
+                $matchProductName = !empty($originalProductName) ? $originalProductName : $product_name;
+                $matchSupplierId = !empty($originalSupplierId) ? $originalSupplierId : $supplier_id;
+                $matchArticle = ($originalArticle !== null) ? $originalArticle : $article;
+
+                $bulkResult = $this->accessDB->updateItemsByArticleWiseMatch(
+                    $matchArticle,
+                    $matchProductName,
+                    $matchSupplierId,
+                    $date,
+                    $color_id,
+                    $article,
+                    $product_group,
+                    $brand,
+                    $heels,
+                    $tags,
+                    $category,
+                    $purchase_rate,
+                    $gst,
+                    $mrp,
+                    $purchase_code
+                );
+
+                $result = !empty($bulkResult['success']);
+                $matchedCount = (int) ($bulkResult['matched'] ?? 0);
+                $successMessage = 'Bulk update completed. Updated ' . $matchedCount . ' item(s).';
+            } else {
+                $result = $this->accessDB->updateItem(
+                    $id,
+                    $product_code,
+                    $product_name,
+                    $date,
+                    $supplier_id,
+                    $color_id,
+                    $article,
+                    $product_group,
+                    $brand,
+                    $heels,
+                    $tags,
+                    $category,
+                    $purchase_rate,
+                    $gst,
+                    $mrp,
+                    $purchase_code,
+                    $from_size,
+                    $img_code
+                );
+            }
 
             if ($result) {
                 if ($this->request->isAJAX()) {
-                    return $this->response->setJSON(['success' => true, 'message' => 'Item updated successfully']);
+                    return $this->response->setJSON(['success' => true, 'message' => $successMessage]);
                 }
-                $session->setFlashdata('success', 'Item updated successfully');
+                $session->setFlashdata('success', $successMessage);
                 return redirect()->route('item.index');
             } else {
                 $message = 'Failed to update item';

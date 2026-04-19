@@ -713,6 +713,89 @@ class AccessDB
         return $res;
     }
 
+    public function updateItemsByArticleWiseMatch(
+        $matchArticle,
+        $matchProductName,
+        $matchSupplierId,
+        $date,
+        $color_id,
+        $article,
+        $product_group,
+        $brand,
+        $heels,
+        $tags,
+        $category,
+        $purchase_rate,
+        $gst,
+        $mrp,
+        $purchase_code
+    ) {
+        $whereParts = [];
+        $whereParams = [];
+
+        $whereParts[] = "product_name = ?";
+        $whereParams[] = $matchProductName;
+
+        $whereParts[] = "supplier_id = ?";
+        $whereParams[] = $matchSupplierId;
+
+        if ($matchArticle === null || trim((string) $matchArticle) === '') {
+            $whereParts[] = "(article IS NULL OR article = '')";
+        } else {
+            $whereParts[] = "article = ?";
+            $whereParams[] = $matchArticle;
+        }
+
+        $whereSql = implode(' AND ', $whereParts);
+
+        $countStmt = $this->pdo->prepare("SELECT COUNT(*) AS total FROM items WHERE $whereSql");
+        $countStmt->execute($whereParams);
+        $countRow = $countStmt->fetch(PDO::FETCH_ASSOC);
+        $this->freeStmt($countStmt);
+        $matched = (int) ($countRow['total'] ?? 0);
+
+        if ($matched <= 0) {
+            return ['success' => false, 'matched' => 0];
+        }
+
+        $updateSql = "UPDATE items SET
+            item_date = ?,
+            color_id = ?,
+            article = ?,
+            product_group = ?,
+            brand = ?,
+            heels = ?,
+            tags = ?,
+            category = ?,
+            purchase_rate = ?,
+            gst = ?,
+            mrp = ?,
+            purchase_code = ?,
+            updated_at = NOW()
+         WHERE $whereSql";
+
+        $updateParams = [
+            $date,
+            $color_id,
+            $article,
+            $product_group,
+            $brand,
+            $heels,
+            $tags,
+            $category,
+            $purchase_rate,
+            $gst,
+            $mrp,
+            $purchase_code
+        ];
+
+        $stmt = $this->pdo->prepare($updateSql);
+        $res = $stmt->execute(array_merge($updateParams, $whereParams));
+        $this->freeStmt($stmt);
+
+        return ['success' => (bool) $res, 'matched' => $matched];
+    }
+
     public function deleteItem($id)
     {
         $stmt = $this->pdo->prepare("DELETE FROM items WHERE id = ?");

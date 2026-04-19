@@ -263,6 +263,9 @@ $getImageUrl = function($imageCode) {
             <div class="modal-body p-4">
                 <form id="editItemForm">
                     <input type="hidden" id="editItemId" name="id">
+                    <input type="hidden" id="editOriginalProductName" name="original_product_name">
+                    <input type="hidden" id="editOriginalSupplierId" name="original_supplier_id">
+                    <input type="hidden" id="editOriginalArticle" name="original_article">
 
                     <!-- Basic Information Section -->
                     <div class="mb-4">
@@ -413,6 +416,16 @@ $getImageUrl = function($imageCode) {
                     </div>
 
                     <div class="alert alert-info alert-sm" id="editFormMessage" style="display: none;"></div>
+
+                    <div class="form-check border rounded p-2 bg-light">
+                        <input class="form-check-input" type="checkbox" id="editUpdateArticlewise" name="update_articlewise" value="1">
+                        <label class="form-check-label" for="editUpdateArticlewise">
+                            Update Article-wise (bulk update)
+                        </label>
+                        <div class="small text-muted">
+                            If checked, all items matching original Article + Product Name + Supplier will be updated.
+                        </div>
+                    </div>
                 </form>
             </div>
             <div class="modal-footer bg-light">
@@ -751,6 +764,10 @@ $getImageUrl = function($imageCode) {
                         $('#editItemId').val(item.id);
                         $('#editProductCode').val(item.product_code);
                         $('#editItemDate').val(item.created_at ? item.created_at.split(' ')[0] : '');
+                        $('#editOriginalProductName').val(item.product_name || '');
+                        $('#editOriginalSupplierId').val(item.supplier_id || '');
+                        $('#editOriginalArticle').val(item.article || '');
+                        $('#editUpdateArticlewise').prop('checked', false);
                         
                         // Populate Product Name dropdown
                         const productNameSelect = $('#editProductName');
@@ -930,7 +947,11 @@ $getImageUrl = function($imageCode) {
                 purchase_rate: $('#editPurchaseRate').val(),
                 gst: $('#editGST').val(),
                 mrp: $('#editMRP').val(),
-                purchase_code: $('#editPurchaseCode').val()
+                purchase_code: $('#editPurchaseCode').val(),
+                update_articlewise: $('#editUpdateArticlewise').is(':checked') ? '1' : '0',
+                original_product_name: $('#editOriginalProductName').val(),
+                original_supplier_id: $('#editOriginalSupplierId').val(),
+                original_article: $('#editOriginalArticle').val()
             };
 
             $.ajax({
@@ -944,7 +965,7 @@ $getImageUrl = function($imageCode) {
                     if (response.success) {
                         Swal.fire({
                             title: 'Success',
-                            text: 'Item updated successfully',
+                            text: response.message || 'Item updated successfully',
                             icon: 'success'
                         }).then(() => {
                             location.reload();
