@@ -224,6 +224,9 @@ $getImageUrl = function($imageCode) {
                                     <button type="button" class="btn btn-sm btn-info edit-item" data-id="<?= $item['id'] ?>" title="Edit Item">
                                         <i class="fa-solid fa-pen-to-square"></i>
                                     </button>
+                                    <a href="<?= route_to('item.printSticker', $item['id']) ?>" class="btn btn-sm btn-success print-item" data-id="<?= $item['id'] ?>" title="Print Sticker" target="_blank">
+                                        <i class="fa-solid fa-print"></i>
+                                    </a>
                                     <button type="button" class="btn btn-sm btn-danger delete-item" data-id="<?= $item['id'] ?>" data-name="<?= esc($item['product_name']) ?>" title="Delete Item">
                                         <i class="fa-solid fa-trash"></i>
                                     </button>

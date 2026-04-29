@@ -892,6 +892,53 @@ class Item extends BaseController
         }
     }
 
+    public function printSticker($id)
+    {
+        $session = session();
+        
+        if (!$session->get('isLoggedIn')) {
+            return redirect()->route('login');
+        }
+
+        try {
+            $item = $this->accessDB->getItemById($id);
+
+            if (!$item) {
+                return redirect()->route('item.index')->with('error', 'Item not found');
+            }
+
+            // Get image URL
+            $getImageUrl = function($imageCode) {
+                if (empty($imageCode)) {
+                    return null;
+                }
+                
+                $uploadDir = FCPATH . 'uploads/images/';
+                $imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+                
+                foreach ($imageExtensions as $ext) {
+                    $filePath = $uploadDir . $imageCode . '.' . $ext;
+                    if (file_exists($filePath)) {
+                        return base_url('uploads/images/' . $imageCode . '.' . $ext);
+                    }
+                }
+                
+                return null;
+            };
+
+            $data = [
+                'item' => $item,
+                'imageUrl' => $getImageUrl($item['img_code'] ?? ''),
+                'user_name' => $session->get('user_name'),
+                'user_email' => $session->get('user_email')
+            ];
+
+            return view('item/print_sticker', $data);
+        } catch (\Exception $e) {
+            return redirect()->route('item.index')->with('error', 'Error: ' . $e->getMessage());
+        }
+    }
+
     public function getItemData($id)
     {
         $session = session();
