@@ -128,30 +128,30 @@
             flex: 1;
             display: flex;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start;
             background-color: #e07b00;
             color: white;
-            font-weight: bold;
+            font-weight: 900;
             font-size: 13px;
             letter-spacing: 0.5px;
             width: 100%;
             padding: 2px 6px;
-            text-align: center;
+            text-align: left;
             word-break: break-all;
         }
         .s-code .sc-category {
             flex: 1;
             display: flex;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start;
             background-color: white;
             color: #333;
-            font-weight: bold;
+            font-weight: 900;
             font-size: 9px;
             text-transform: uppercase;
             width: 100%;
             padding: 2px 6px;
-            text-align: center;
+            text-align: left;
             border-top: 1px solid #333;
             word-break: break-all;
         }
@@ -175,14 +175,25 @@
         .s-info {
             flex-direction: column;
             align-items: flex-start;
-            padding: 4px 6px;
-            gap: 1px;
+            padding: 0;
+            gap: 0;
         }
-        .s-info .si-color {
-            font-size: 7px;
-            font-weight: bold;
-            text-transform: uppercase;
-            color: #444;
+        .s-info .si-body {
+            display: flex;
+            flex-direction: row;
+            flex: 1;
+            width: 100%;
+            overflow: hidden;
+        }
+        .s-info .si-left {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 3px 4px;
+            border-right: 0.5px solid #ccc;
+            text-align: center;
         }
         .s-info .si-size {
             font-size: 20px;
@@ -194,12 +205,26 @@
             color: #333;
             line-height: 1.2;
         }
+        .s-info .si-right {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 3px 4px;
+        }
+        .s-info .si-color {
+            font-size: 9px;
+            font-weight: 900;
+            text-transform: uppercase;
+            color: #111;
+            text-align: center;
+            word-break: break-word;
+        }
         .s-info .si-mrp {
             font-size: 7.5px;
             font-weight: bold;
-            margin-top: auto;
             border-top: 0.5px solid #ccc;
-            padding-top: 2px;
+            padding: 2px 4px;
             width: 100%;
         }
 
@@ -396,13 +421,21 @@
                         $extraSize = trim($szMatch[2] ?? '');
                     ?>
                     <div class="s-cell s-info">
-                        <?php if (!empty($item['color_name'])): ?>
-                            <div class="si-color"><?= esc($item['color_name']) ?></div>
-                        <?php endif; ?>
-                        <div class="si-size"><?= esc($mainSize) ?></div>
-                        <?php if ($extraSize !== ''): ?>
-                            <div class="si-size-extra"><?= esc($extraSize) ?></div>
-                        <?php endif; ?>
+                        <div class="si-body">
+                            <!-- Left: sizes -->
+                            <div class="si-left">
+                                <div class="si-size"><?= esc($mainSize) ?></div>
+                                <?php if ($extraSize !== ''): ?>
+                                    <div class="si-size-extra"><?= esc($extraSize) ?></div>
+                                <?php endif; ?>
+                            </div>
+                            <!-- Right: color -->
+                            <div class="si-right">
+                                <?php if (!empty($item['color_name'])): ?>
+                                    <div class="si-color"><?= esc($item['color_name']) ?></div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
                         <div class="si-mrp">MRP: &#8377;<?= number_format($item['mrp'] ?? 0, 2) ?></div>
                     </div>
 

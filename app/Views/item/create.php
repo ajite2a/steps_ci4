@@ -134,6 +134,10 @@
                         <input type="number" class="form-control" id="mrp" name="mrp" placeholder="e.g., 500.00" step="0.01">
                     </div>
                     <div class="col-md-6 col-lg-4">
+                        <label for="display_price" class="form-label">Display Price</label>
+                        <input type="number" class="form-control" id="display_price" name="display_price" placeholder="e.g., 499.00" step="0.01">
+                    </div>
+                    <div class="col-md-6 col-lg-4">
                         <label for="purchase_code" class="form-label">Purchase Code</label>
                         <input type="text" class="form-control" id="purchase_code" name="purchase_code" placeholder="e.g., PO-2024-001">
                     </div>
@@ -234,6 +238,7 @@ $(document).ready(function() {
             purchaseRate: $('#purchase_rate').val(),
             gstType: $('#gst_type').val(),
             mrp: $('#mrp').val(),
+            displayPrice: $('#display_price').val(),
             purchaseCode: $('#purchase_code').val(),
             variants: []
         };
@@ -268,6 +273,7 @@ $(document).ready(function() {
         $('#gst_type').val('');
         $('#gst_value').val('');
         $('#mrp').val('');
+        $('#display_price').val('');
         $('#purchase_code').val('');
         $('#variantsList').html('<p class="text-muted">No variants added yet. Click the button below to add variants.</p>');
     }
@@ -322,6 +328,7 @@ $(document).ready(function() {
             $('#purchase_rate').val(stateData.purchaseRate);
             $('#gst_type').val(stateData.gstType);
             $('#mrp').val(stateData.mrp);
+            $('#display_price').val(stateData.displayPrice);
             $('#purchase_code').val(stateData.purchaseCode);
             
             // Trigger Select2 change to update UI
@@ -382,6 +389,7 @@ $(document).ready(function() {
         const purchaseRate = $('#purchase_rate').val();
         const gstType = $('#gst_type').val();
         const mrp = $('#mrp').val();
+        const displayPrice = $('#display_price').val();
         const purchaseCode = $('#purchase_code').val();
         
         console.log('Product Name (from Select2):', productName);
@@ -502,6 +510,7 @@ $(document).ready(function() {
         formData.append('purchase_rate', purchaseRate);
         formData.append('gst_type', gstType);
         formData.append('mrp', mrp);
+        formData.append('display_price', displayPrice);
         formData.append('purchase_code', purchaseCode);
         
         // Add variant data with correct field naming
@@ -1135,7 +1144,7 @@ $(document).ready(function() {
     };
     
     // Auto-save when input values change
-    $(document).on('change keyup', '#product_name, #supplier_id, #item_date, #purchase_rate, #gst_type, #mrp, #purchase_code', function() {
+    $(document).on('change keyup', '#product_name, #supplier_id, #item_date, #purchase_rate, #gst_type, #mrp, #display_price, #purchase_code', function() {
         // Debounce by using a timeout
         clearTimeout(window.autoSaveTimeout);
         window.autoSaveTimeout = setTimeout(function() {
@@ -1226,6 +1235,7 @@ $(document).ready(function() {
             purchaseRate: $('#purchase_rate').val(),
             gstType: $('#gst_type').val(),
             mrp: $('#mrp').val(),
+            displayPrice: $('#display_price').val(),
             purchaseCode: $('#purchase_code').val(),
             variantCount: $('#variantsList').find('.variant-item').length
         };

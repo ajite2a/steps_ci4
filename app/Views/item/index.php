@@ -412,6 +412,10 @@ $getImageUrl = function($imageCode) {
                                 <input type="number" class="form-control form-control-sm" id="editMRP" name="mrp" step="0.01" placeholder="0.00">
                             </div>
                             <div class="col-md-6 col-lg-3">
+                                <label for="editDisplayPrice" class="form-label small">Display Price</label>
+                                <input type="number" class="form-control form-control-sm" id="editDisplayPrice" name="display_price" step="0.01" placeholder="0.00">
+                            </div>
+                            <div class="col-md-6 col-lg-3">
                                 <label for="editPurchaseCode" class="form-label small">Purchase Code</label>
                                 <input type="text" class="form-control form-control-sm" id="editPurchaseCode" name="purchase_code" placeholder="PO-2024">
                             </div>
@@ -890,6 +894,7 @@ $getImageUrl = function($imageCode) {
                         $('#editGST').val(item.gst || '');
                         calculateEditGSTValue();
                         $('#editMRP').val(item.mrp || '');
+                        $('#editDisplayPrice').val(item.display_price || '');
                         $('#editPurchaseCode').val(item.purchase_code || '');
                         
                         // Show the modal
@@ -950,6 +955,7 @@ $getImageUrl = function($imageCode) {
                 purchase_rate: $('#editPurchaseRate').val(),
                 gst: $('#editGST').val(),
                 mrp: $('#editMRP').val(),
+                display_price: $('#editDisplayPrice').val(),
                 purchase_code: $('#editPurchaseCode').val(),
                 update_articlewise: $('#editUpdateArticlewise').is(':checked') ? '1' : '0',
                 original_product_name: $('#editOriginalProductName').val(),

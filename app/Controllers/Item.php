@@ -125,6 +125,7 @@ class Item extends BaseController
         $purchase_rate = $this->request->getPost('purchase_rate');
         $gst_type = $this->request->getPost('gst_type');
         $mrp = $this->request->getPost('mrp');
+        $display_price = $this->request->getPost('display_price');
         $purchase_code = $this->request->getPost('purchase_code');
 
         log_message('info', 'Product Name: ' . ($product_name ?? 'NULL'));
@@ -149,6 +150,7 @@ class Item extends BaseController
                 'purchaseRate' => $purchase_rate,
                 'gstType' => $gst_type,
                 'mrp' => $mrp,
+                'displayPrice' => $display_price,
                 'purchaseCode' => $purchase_code,
                 'variants' => $variants
             ]));
@@ -169,6 +171,7 @@ class Item extends BaseController
                 'purchaseRate' => $purchase_rate,
                 'gstType' => $gst_type,
                 'mrp' => $mrp,
+                'displayPrice' => $display_price,
                 'purchaseCode' => $purchase_code,
                 'variants' => $variants
             ]));
@@ -189,6 +192,7 @@ class Item extends BaseController
                 'purchaseRate' => $purchase_rate,
                 'gstType' => $gst_type,
                 'mrp' => $mrp,
+                'displayPrice' => $display_price,
                 'purchaseCode' => $purchase_code,
                 'variants' => $variants
             ]));
@@ -246,6 +250,7 @@ class Item extends BaseController
                             $purchase_rate,                              // purchase_rate
                             $gst_type,                                   // gst
                             $mrp,                                        // mrp
+                            $display_price,                              // display_price
                             $purchase_code,                              // purchase_code
                             $sizeData['name'],                           // size_from (store size name)
                             $variant['image_code'] ?? null               // img_code
@@ -343,6 +348,7 @@ class Item extends BaseController
         $purchase_rate = $this->request->getPost('purchase_rate');
         $gst = $this->request->getPost('gst');
         $mrp = $this->request->getPost('mrp');
+        $display_price = $this->request->getPost('display_price');
         $purchase_code = $this->request->getPost('purchase_code');
         $from_size = $this->request->getPost('size_from');
         $img_code = $this->request->getPost('img_code');
@@ -402,6 +408,7 @@ class Item extends BaseController
                     $purchase_rate,
                     $gst,
                     $mrp,
+                    $display_price,
                     $purchase_code
                 );
 
@@ -425,6 +432,7 @@ class Item extends BaseController
                     $purchase_rate,
                     $gst,
                     $mrp,
+                    $display_price,
                     $purchase_code,
                     $from_size,
                     $img_code

@@ -207,6 +207,11 @@ class AccessDB
         return (bool)$this->pdo->exec($sql);
     }
 
+    public function addColumn(string $table, string $column, string $definition = 'TEXT NULL')
+    {
+        return (bool)$this->pdo->exec("ALTER TABLE {$table} ADD COLUMN {$column} {$definition}");
+    }
+
     /**
      * Drop a table if exists
      */
@@ -690,19 +695,19 @@ class AccessDB
     public function createItem(
         $product_code, $product_name, $date, $supplier_id, $color_id,
         $article, $product_group, $brand, $heels, $tags, $category,
-        $purchase_rate, $gst, $mrp, $purchase_code, $from_size, $img_code
+        $purchase_rate, $gst, $mrp, $display_price, $purchase_code, $from_size, $img_code
     ) {
         $stmt = $this->pdo->prepare(
             "INSERT INTO items (
                 product_code, product_name, item_date, supplier_id, color_id, article,
                 product_group, brand, heels, tags, category, purchase_rate,
-                gst, mrp, purchase_code, size_from, img_code, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())"
+                gst, mrp, display_price, purchase_code, size_from, img_code, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())"
         );
         $res = $stmt->execute([
             $product_code, $product_name, $date, $supplier_id, $color_id, $article,
             $product_group, $brand, $heels, $tags, $category, $purchase_rate,
-            $gst, $mrp, $purchase_code, $from_size, $img_code
+            $gst, $mrp, $display_price, $purchase_code, $from_size, $img_code
         ]);
         $this->freeStmt($stmt);
         return $res;
@@ -711,20 +716,20 @@ class AccessDB
     public function updateItem(
         $id, $product_code, $product_name, $date, $supplier_id, $color_id,
         $article, $product_group, $brand, $heels, $tags, $category,
-        $purchase_rate, $gst, $mrp, $purchase_code, $from_size, $img_code
+        $purchase_rate, $gst, $mrp, $display_price, $purchase_code, $from_size, $img_code
     ) {
         $stmt = $this->pdo->prepare(
             "UPDATE items SET
                 product_code = ?, product_name = ?, item_date = ?, supplier_id = ?, color_id = ?,
                 article = ?, product_group = ?, brand = ?, heels = ?, tags = ?, category = ?,
-                purchase_rate = ?, gst = ?, mrp = ?, purchase_code = ?, size_from = ?,
+                purchase_rate = ?, gst = ?, mrp = ?, display_price = ?, purchase_code = ?, size_from = ?,
                 img_code = ?, updated_at = NOW()
              WHERE id = ?"
         );
         $res = $stmt->execute([
             $product_code, $product_name, $date, $supplier_id, $color_id, $article,
             $product_group, $brand, $heels, $tags, $category, $purchase_rate,
-            $gst, $mrp, $purchase_code, $from_size, $img_code, $id
+            $gst, $mrp, $display_price, $purchase_code, $from_size, $img_code, $id
         ]);
         $this->freeStmt($stmt);
         return $res;
@@ -745,6 +750,7 @@ class AccessDB
         $purchase_rate,
         $gst,
         $mrp,
+        $display_price,
         $purchase_code
     ) {
         $whereParts = [];
@@ -787,6 +793,7 @@ class AccessDB
             purchase_rate = ?,
             gst = ?,
             mrp = ?,
+            display_price = ?,
             purchase_code = ?,
             updated_at = NOW()
          WHERE $whereSql";
@@ -803,6 +810,7 @@ class AccessDB
             $purchase_rate,
             $gst,
             $mrp,
+            $display_price,
             $purchase_code
         ];
 
