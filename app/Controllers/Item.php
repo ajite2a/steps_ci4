@@ -936,10 +936,11 @@ class Item extends BaseController
             };
 
             $data = [
-                'item' => $item,
-                'imageUrl' => $getImageUrl($item['img_code'] ?? ''),
-                'user_name' => $session->get('user_name'),
-                'user_email' => $session->get('user_email')
+                'item'          => $item,
+                'imageUrl'      => $getImageUrl($item['img_code'] ?? ''),
+                'scan_type'     => $this->accessDB->getSettingByKey('item_scan_type') ?? 'barcode',
+                'user_name'     => $session->get('user_name'),
+                'user_email'    => $session->get('user_email'),
             ];
 
             // print_r($item);

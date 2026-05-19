@@ -242,7 +242,7 @@
             text-decoration: line-through;
         }
 
-        /* Box 4 – barcode */
+        /* Box 4 – barcode / qrcode */
         .s-barcode {
             flex-direction: column;
             padding: 3px;
@@ -250,6 +250,14 @@
         }
         .s-barcode svg {
             max-width: 100%;
+        }
+        .s-barcode canvas,
+        .s-barcode img {
+            max-width: 100%;
+            max-height: 100%;
+        }
+        #qrcode img {
+            display: block;
         }
         .s-barcode .bc-label {
             font-size: 5.5px;
@@ -465,10 +473,14 @@
                         </div>
                     </div>
 
-                    <!-- Box 4: Barcode (bottom-right) -->
+                    <!-- Box 4: Barcode / QR Code (bottom-right) -->
                     <div class="s-cell s-barcode">
-                        <svg id="barcode"></svg>
-                        <span class="bc-label"><?= esc($item['product_code']) ?></span>
+                        <?php if (($scan_type ?? 'barcode') === 'qrcode'): ?>
+                            <div id="qrcode"></div>
+                        <?php else: ?>
+                            <svg id="barcode"></svg>
+                            <span class="bc-label"><?= esc($item['product_code']) ?></span>
+                        <?php endif; ?>
                     </div>
 
                 </div>
@@ -480,19 +492,41 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    
+    <?php if (($scan_type ?? 'barcode') === 'qrcode'): ?>
+    <!-- qrcodejs -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <?php endif; ?>
+
     <script>
-        // Generate barcode
+        const productCode = '<?= esc($item['product_code']) ?>';
+        const scanType    = '<?= esc($scan_type ?? 'barcode') ?>';
+
+        window.addEventListener('afterprint', function() {
+            window.close();
+        });
+
         document.addEventListener('DOMContentLoaded', function() {
-            const productCode = '<?= esc($item['product_code']) ?>';
-            
-            JsBarcode("#barcode", productCode, {
-                format: "CODE128",
-                width: 1.5,
-                height: 32,
-                displayValue: false,
-                margin: 2
-            });
+            if (scanType === 'qrcode') {
+                new QRCode(document.getElementById('qrcode'), {
+                    text: productCode,
+                    width: 64,
+                    height: 64,
+                    colorDark: '#000000',
+                    colorLight: '#ffffff',
+                    correctLevel: QRCode.CorrectLevel.M
+                });
+                // Small delay to ensure QR code renders before print dialog opens
+                setTimeout(function() { window.print(); }, 300);
+            } else {
+                JsBarcode("#barcode", productCode, {
+                    format: "CODE128",
+                    width: 1.5,
+                    height: 32,
+                    displayValue: false,
+                    margin: 2
+                });
+                window.print();
+            }
         });
     </script>
 </body>
