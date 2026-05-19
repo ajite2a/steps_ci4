@@ -266,7 +266,8 @@ $(document).ready(function() {
     // Function to reset form to defaults (for fresh page visits)
     function resetForm() {
         console.log('Resetting form to defaults');
-        $('#product_name').val('');
+        const firstProductValue = $('#product_name option:not([value=""])').first().val() || '';
+        $('#product_name').val(firstProductValue);
         $('#supplier_id').val('');
         $('#item_date').val('<?= date('Y-m-d') ?>');
         $('#purchase_rate').val('');
@@ -349,10 +350,26 @@ $(document).ready(function() {
     // Restore variants on page load
     setTimeout(function() {
         restoreVariantState();
-        
+
         // Initialize Select2 AFTER restoring state
         setTimeout(function() {
             initializeSelect2();
+
+            // On fresh page visit: update Select2 display, expand variants, add one default variant
+            const hasError = <?= session()->getFlashdata('error') ? 'true' : 'false' ?>;
+            if (!hasError) {
+                $('#product_name').trigger('change.select2');
+                $('#product_name').data('previous-value', $('#product_name').val());
+                // Expand the variants section
+                const variantsSectionEl = document.getElementById('variantsSection');
+                if (variantsSectionEl && !variantsSectionEl.classList.contains('show')) {
+                    new bootstrap.Collapse(variantsSectionEl, {show: true});
+                }
+                // Auto-add one variant after collapse animation starts
+                setTimeout(function() {
+                    $('#addVariantBtn').trigger('click');
+                }, 300);
+            }
         }, 200);
     }, 500);
     
@@ -726,31 +743,42 @@ $(document).ready(function() {
     // Handle product name change
     $('#product_name').on('change', function() {
         const selectedValue = $(this).val();
-        const selectedOption = $(this).find('option:selected');
-        const selectedId = selectedOption.data('id');
-        
-        // Check if variants exist
-        const variantCount = $('#variantsList').find('.variant-item').length;
-        if (variantCount > 0) {
+        const $self = $(this);
+        const existingVariants = $('#variantsList').find('.variant-item').length;
+
+        if (existingVariants > 0) {
             Swal.fire({
                 icon: 'warning',
-                title: 'Cannot Change',
-                text: 'A variant is already added to this product. Remove the variant first to change the product.',
+                title: 'Change Product?',
+                text: 'Changing the product will remove all current variants and add a new default one. Continue?',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, Change',
+                cancelButtonText: 'Cancel',
                 confirmButtonColor: '#667eea'
+            }).then(function(result) {
+                if (result.isConfirmed) {
+                    // Clear all variants and reset the counter
+                    $('#variantsList').html('<p class="text-muted">No variants added yet. Click the button below to add variants.</p>');
+                    variantCount = 0;
+                    $self.data('previous-value', selectedValue);
+                    $('#sizeInfoBtn').prop('disabled', !selectedValue);
+                    // Auto-add a fresh variant for the new product
+                    if (selectedValue) {
+                        setTimeout(function() {
+                            $('#addVariantBtn').trigger('click');
+                        }, 100);
+                    }
+                } else {
+                    // Revert to previous value
+                    $self.val($self.data('previous-value')).trigger('change.select2');
+                }
             });
-            // Reset to previous value
-            $(this).val($(this).data('previous-value')).trigger('change.select2');
             return;
         }
-        
-        // Store the current value as previous value for next change check
+
+        // No variants — just update tracking state
         $(this).data('previous-value', selectedValue);
-        
-        if (!selectedValue) {
-            $('#sizeInfoBtn').prop('disabled', true);
-        } else {
-            $('#sizeInfoBtn').prop('disabled', false);
-        }
+        $('#sizeInfoBtn').prop('disabled', !selectedValue);
     });
 
     // Handle size info button click
@@ -877,8 +905,7 @@ $(document).ready(function() {
                     const $variantsList = $('#variantsList');
                     if ($variantsList.find('.variant-item').length === 0) {
                         $variantsList.empty();
-                        // Disable product name when first variant is added
-                        $('#product_name').prop('disabled', true).data('previous-value', $('#product_name').val());
+                        $('#product_name').data('previous-value', $('#product_name').val());
                     }
                     $variantsList.append(response.html);
                     
