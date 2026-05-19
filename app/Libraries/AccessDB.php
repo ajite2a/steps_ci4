@@ -307,6 +307,15 @@ class AccessDB
         return $rows;
     }
 
+    public function getCategoryById($id)
+    {
+        $stmt = $this->pdo->prepare("SELECT * FROM categories WHERE id = ?");
+        $stmt->execute([$id]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $this->freeStmt($stmt);
+        return $row;
+    }
+
     public function getAllProductGroups()
     {
         $stmt = $this->pdo->query("SELECT * FROM product_groups ORDER BY group_name ASC");
@@ -665,8 +674,16 @@ class AccessDB
             } else {
                 $row['color_name'] = null;
             }
+
+            // Get category name if category id exists
+            if (!empty($row['category'])) {
+                $category = $this->getCategoryById($row['category']);
+                $row['category_name'] = $category ? $category['category_name'] : null;
+            } else {
+                $row['category_name'] = null;
+            }
         }
-        
+
         return $row;
     }
 

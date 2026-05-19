@@ -894,6 +894,7 @@ class Item extends BaseController
 
     public function printSticker($id)
     {
+        
         $session = session();
         
         if (!$session->get('isLoggedIn')) {
@@ -932,6 +933,9 @@ class Item extends BaseController
                 'user_name' => $session->get('user_name'),
                 'user_email' => $session->get('user_email')
             ];
+
+            // print_r($item);
+            // exit;
 
             return view('item/print_sticker', $data);
         } catch (\Exception $e) {
