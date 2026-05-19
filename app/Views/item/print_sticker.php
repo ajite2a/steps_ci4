@@ -221,11 +221,25 @@
             word-break: break-word;
         }
         .s-info .si-mrp {
-            font-size: 7.5px;
+            font-size: 8px;
             font-weight: bold;
             border-top: 0.5px solid #ccc;
             padding: 2px 4px;
             width: 100%;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 3px;
+        }
+        .s-info .si-mrp .si-mrp-price {
+            font-size: 9px;
+            font-weight: 900;
+        }
+        .s-info .si-display-price {
+            font-size: 8px;
+            font-weight: 700;
+            color: #888;
+            text-decoration: line-through;
         }
 
         /* Box 4 – barcode */
@@ -390,6 +404,12 @@
                 <span class="info-label">MRP:</span>
                 <span class="info-value">₹<?= number_format($item['mrp'] ?? 0, 2) ?></span>
             </div>
+            <?php if (!empty($item['display_price'])): ?>
+            <div class="info-row">
+                <span class="info-label">Display Price:</span>
+                <span class="info-value"><s>₹<?= number_format($item['display_price'], 2) ?></s></span>
+            </div>
+            <?php endif; ?>
         </div>
 
         <!-- Sticker Preview -->
@@ -436,7 +456,13 @@
                                 <?php endif; ?>
                             </div>
                         </div>
-                        <div class="si-mrp">MRP: &#8377;<?= number_format($item['mrp'] ?? 0, 2) ?></div>
+                        <div class="si-mrp">
+                            <span>MRP:</span>
+                            <?php if (!empty($item['display_price'])): ?>
+                                <span class="si-display-price">&#8377;<?= number_format($item['display_price'], 2) ?></span>
+                            <?php endif; ?>
+                            <span class="si-mrp-price">&#8377;<?= number_format($item['mrp'] ?? 0, 2) ?></span>
+                        </div>
                     </div>
 
                     <!-- Box 4: Barcode (bottom-right) -->
