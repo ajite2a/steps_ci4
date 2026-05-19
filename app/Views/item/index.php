@@ -729,19 +729,22 @@ $getImageUrl = function($imageCode) {
                     if (response.success && response.sizes && response.sizes.length > 0) {
                         response.sizes.forEach(size => {
                             const displayText = size.new_size ? `${size.size_value} (${size.new_size})` : size.size_value;
-                            sizeSelect.append(`<option value="${size.size_value}">${displayText}</option>`);
+                            sizeSelect.append(`<option value="${displayText}">${displayText}</option>`);
                         });
-                        
+
                         // Select the provided size value if given
                         if (selectedSize) {
                             // Try exact match first
                             if (sizeSelect.find('option[value="' + selectedSize + '"]').length > 0) {
                                 sizeSelect.val(selectedSize);
                             } else {
-                                // If no exact match found, try to find by display text
+                                // Fallback: match by size number only (handles legacy data stored without parenthetical)
                                 sizeSelect.find('option').each(function() {
-                                    if ($(this).val() === selectedSize || $(this).text().includes(selectedSize)) {
-                                        sizeSelect.val($(this).val());
+                                    const optVal = $(this).val();
+                                    const optBase = optVal.split('(')[0].trim();
+                                    const selBase = selectedSize.split('(')[0].trim();
+                                    if (optBase === selBase || optVal.includes(selectedSize)) {
+                                        sizeSelect.val(optVal);
                                         return false;
                                     }
                                 });

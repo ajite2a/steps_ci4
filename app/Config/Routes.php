@@ -53,3 +53,9 @@ $routes->get('item/getVariantForm', 'Item::getVariantForm', ['as' => 'item.getVa
 $routes->post('item/checkArticleExists', 'Item::checkArticleExists', ['as' => 'item.checkArticleExists']);
 $routes->post('item/checkImageExists', 'Item::checkImageExists', ['as' => 'item.checkImageExists']);
 $routes->post('item/uploadVariantImage', 'Item::uploadVariantImage', ['as' => 'item.uploadVariantImage']);
+
+// Settings routes
+$routes->get('settings', 'Setting::index', ['as' => 'setting.index']);
+$routes->post('settings/store', 'Setting::store', ['as' => 'setting.store']);
+$routes->post('settings/update', 'Setting::update', ['as' => 'setting.update']);
+$routes->post('settings/(:num)/delete', 'Setting::delete/$1', ['as' => 'setting.delete']);

@@ -221,6 +221,51 @@ class AccessDB
         return (bool)$this->pdo->exec($sql);
     }
 
+    // ===== SETTINGS CRUD METHODS =====
+
+    public function getAllSettings()
+    {
+        $stmt = $this->pdo->query("SELECT * FROM settings ORDER BY setting_key ASC");
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $this->freeStmt($stmt);
+        return $rows;
+    }
+
+    public function getSettingByKey($key)
+    {
+        $stmt = $this->pdo->prepare("SELECT setting_value FROM settings WHERE setting_key = ?");
+        $stmt->execute([$key]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $this->freeStmt($stmt);
+        return $row ? $row['setting_value'] : null;
+    }
+
+    public function upsertSetting($key, $value)
+    {
+        $stmt = $this->pdo->prepare("SELECT id FROM settings WHERE setting_key = ?");
+        $stmt->execute([$key]);
+        $existing = $stmt->fetch(PDO::FETCH_ASSOC);
+        $this->freeStmt($stmt);
+
+        if ($existing) {
+            $stmt = $this->pdo->prepare("UPDATE settings SET setting_value = ?, updated_at = NOW() WHERE setting_key = ?");
+            $res = $stmt->execute([$value, $key]);
+        } else {
+            $stmt = $this->pdo->prepare("INSERT INTO settings (setting_key, setting_value, created_at, updated_at) VALUES (?, ?, NOW(), NOW())");
+            $res = $stmt->execute([$key, $value]);
+        }
+        $this->freeStmt($stmt);
+        return $res;
+    }
+
+    public function deleteSetting($id)
+    {
+        $stmt = $this->pdo->prepare("DELETE FROM settings WHERE id = ?");
+        $res = $stmt->execute([$id]);
+        $this->freeStmt($stmt);
+        return $res;
+    }
+
     // ===== SUPPLIER CRUD METHODS =====
 
     public function getAllSuppliers()
