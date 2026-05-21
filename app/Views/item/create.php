@@ -220,6 +220,7 @@ $(document).ready(function() {
     const sizesData = <?= json_encode($sizes ?? []) ?>;
     let currentItemType = ''; // Track which type of item is being added
     let currentFieldId = ''; // Track which field to update
+    let currentTargetSelect = null; // Direct reference to the select next to the clicked + button
     
     // Utility function to escape HTML
     window.escapeHtml = function(text) {
@@ -672,8 +673,10 @@ $(document).ready(function() {
         e.stopPropagation();
         currentItemType = $(this).data('type');
         currentFieldId = $(this).data('field-id');
+        // Store direct reference to the adjacent select (works for both static and variant selects)
+        currentTargetSelect = $(this).closest('.d-flex').find('select');
         const displayName = currentItemType.charAt(0).toUpperCase() + currentItemType.slice(1).replace('_', ' ');
-        
+
         $('#addItemModalTitle').text(`Add New ${displayName}`);
         $('#newItemValue').val('').focus();
     });
@@ -703,8 +706,10 @@ $(document).ready(function() {
             dataType: 'json',
             success: function(response) {
                 if (response.success) {
-                    // Add new option to the appropriate select2 dropdown
-                    const $select = $(`#${currentFieldId}`);
+                    // Use the stored select reference (works for both static and dynamic variant selects)
+                    const $select = (currentTargetSelect && currentTargetSelect.length)
+                        ? currentTargetSelect
+                        : $(`#${currentFieldId}`);
                     const newOption = new Option(response.data.name, response.data.id, true, true);
                     $select.append(newOption).trigger('change');
                     
@@ -972,8 +977,9 @@ $(document).ready(function() {
                         if ($(this).is(':checked')) {
                             $group.css('background-color', '#d1ecf1').css('border-color', '#0c5460');
                             $quantityInput.show().focus();
-                            // Set default quantity to 0
-                            $quantityInput.val('0');
+                            if (parseInt($quantityInput.val()) <= 0) {
+                                $quantityInput.val('1');
+                            }
                         } else {
                             $group.css('background-color', '#f8f9fa').css('border-color', '#dee2e6');
                             $quantityInput.hide().val('0');
