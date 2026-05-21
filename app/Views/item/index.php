@@ -255,6 +255,25 @@ $getImageUrl = function($imageCode) {
     </div>
 </div>
 
+<!-- Add New Item Modal (shared by all + buttons in the edit modal) -->
+<div class="modal fade" id="addItemModal" tabindex="-1" style="z-index: 1060;">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addItemModalTitle">Add New Item</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="text" class="form-control" id="newItemValue" placeholder="Enter value">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveItemBtn">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Edit Item Modal -->
 <div class="modal fade" id="editItemModal" tabindex="-1" data-bs-backdrop="static">
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
@@ -309,7 +328,7 @@ $getImageUrl = function($imageCode) {
                                             <select class="form-select form-select-sm" id="editColor" name="color_id">
                                                 <option value="">Select</option>
                                             </select>
-                                            <button type="button" class="btn btn-sm btn-outline-success flex-shrink-0" data-type="color" data-field-id="editColor" data-bs-toggle="modal" data-bs-target="#addItemModal" style="min-width: 35px;" title="Add Color">+</button>
+                                            <button type="button" class="btn btn-sm btn-outline-success flex-shrink-0" data-type="color" data-field-id="editColor" style="min-width: 35px;" title="Add Color">+</button>
                                         </div>
                                     </div>
                                     <div class="col-md-6 col-lg-4">
@@ -322,7 +341,7 @@ $getImageUrl = function($imageCode) {
                                             <select class="form-select form-select-sm" id="editProductGroup" name="product_group">
                                                 <option value="">Select</option>
                                             </select>
-                                            <button type="button" class="btn btn-sm btn-outline-success flex-shrink-0" data-type="product_group" data-field-id="editProductGroup" data-bs-toggle="modal" data-bs-target="#addItemModal" style="min-width: 35px;" title="Add Group">+</button>
+                                            <button type="button" class="btn btn-sm btn-outline-success flex-shrink-0" data-type="product_group" data-field-id="editProductGroup" style="min-width: 35px;" title="Add Group">+</button>
                                         </div>
                                     </div>
                                     <div class="col-md-6 col-lg-4">
@@ -331,7 +350,7 @@ $getImageUrl = function($imageCode) {
                                             <select class="form-select form-select-sm" id="editBrand" name="brand">
                                                 <option value="">Select</option>
                                             </select>
-                                            <button type="button" class="btn btn-sm btn-outline-success flex-shrink-0" data-type="brand" data-field-id="editBrand" data-bs-toggle="modal" data-bs-target="#addItemModal" style="min-width: 35px;" title="Add Brand">+</button>
+                                            <button type="button" class="btn btn-sm btn-outline-success flex-shrink-0" data-type="brand" data-field-id="editBrand" style="min-width: 35px;" title="Add Brand">+</button>
                                         </div>
                                     </div>
                                     <div class="col-md-6 col-lg-4">
@@ -340,7 +359,7 @@ $getImageUrl = function($imageCode) {
                                             <select class="form-select form-select-sm" id="editHeels" name="heels">
                                                 <option value="">Select</option>
                                             </select>
-                                            <button type="button" class="btn btn-sm btn-outline-success flex-shrink-0" data-type="heels" data-field-id="editHeels" data-bs-toggle="modal" data-bs-target="#addItemModal" style="min-width: 35px;" title="Add Heels">+</button>
+                                            <button type="button" class="btn btn-sm btn-outline-success flex-shrink-0" data-type="heels" data-field-id="editHeels" style="min-width: 35px;" title="Add Heels">+</button>
                                         </div>
                                     </div>
                                     <div class="col-md-6 col-lg-4">
@@ -349,7 +368,7 @@ $getImageUrl = function($imageCode) {
                                             <select class="form-select form-select-sm" id="editTags" name="tags">
                                                 <option value="">Select</option>
                                             </select>
-                                            <button type="button" class="btn btn-sm btn-outline-success flex-shrink-0" data-type="tags" data-field-id="editTags" data-bs-toggle="modal" data-bs-target="#addItemModal" style="min-width: 35px;" title="Add Tag">+</button>
+                                            <button type="button" class="btn btn-sm btn-outline-success flex-shrink-0" data-type="tags" data-field-id="editTags" style="min-width: 35px;" title="Add Tag">+</button>
                                         </div>
                                     </div>
                                     <div class="col-md-6 col-lg-4">
@@ -358,7 +377,7 @@ $getImageUrl = function($imageCode) {
                                             <select class="form-select form-select-sm" id="editCategory" name="category">
                                                 <option value="">Select</option>
                                             </select>
-                                            <button type="button" class="btn btn-sm btn-outline-success flex-shrink-0" data-type="category" data-field-id="editCategory" data-bs-toggle="modal" data-bs-target="#addItemModal" style="min-width: 35px;" title="Add Category">+</button>
+                                            <button type="button" class="btn btn-sm btn-outline-success flex-shrink-0" data-type="category" data-field-id="editCategory" style="min-width: 35px;" title="Add Category">+</button>
                                         </div>
                                     </div>
                                     <div class="col-md-6 col-lg-4">
@@ -530,110 +549,47 @@ $getImageUrl = function($imageCode) {
                 saveItemChanges();
             });
 
-            // Handle add item buttons in edit modal
+            // Handle + buttons in edit modal — show add modal without closing edit modal
             $(document).on('click', '#editItemModal button[data-type]', function() {
                 const type = $(this).data('type');
-                const fieldId = $(this).data('field-id');
                 window.currentItemType = type;
-                window.currentFieldId = fieldId;
-                $('#addItemModalTitle').text('Add New ' + type.charAt(0).toUpperCase() + type.slice(1));
-                $('#newItemValue').val('').focus();
+                window.currentTargetSelect = $(this).closest('.d-flex').find('select');
+                const displayName = type.charAt(0).toUpperCase() + type.slice(1).replace('_', ' ');
+                $('#addItemModalTitle').text('Add New ' + displayName);
+                $('#newItemValue').val('');
+                // Show programmatically with no backdrop so editItemModal stays visible
+                const addModal = new bootstrap.Modal(document.getElementById('addItemModal'), { backdrop: false, keyboard: true });
+                addModal.show();
+                setTimeout(() => $('#newItemValue').focus(), 300);
             });
 
-            // Handle save in add item modal
+            // Save new item and auto-add + select it in the adjacent dropdown
             $('#saveItemBtn').click(function() {
                 const itemType = window.currentItemType;
-                const fieldId = window.currentFieldId;
                 const itemValue = $('#newItemValue').val().trim();
 
                 if (!itemValue) {
-                    alert('Please enter a value');
+                    Swal.fire({ icon: 'warning', title: 'Empty Field', text: 'Please enter a value', confirmButtonColor: '#667eea' });
                     return;
                 }
 
                 $.ajax({
                     url: '<?= route_to('item.addItemValue') ?>',
                     type: 'POST',
-                    data: {
-                        type: itemType,
-                        value: itemValue,
-                        '<?= csrf_token() ?>': '<?= csrf_hash() ?>'
-                    },
+                    data: { type: itemType, value: itemValue, '<?= csrf_token() ?>': '<?= csrf_hash() ?>' },
                     dataType: 'json',
                     success: function(response) {
                         if (response.success) {
-                            // Refresh the dropdown with new value
-                            const selectField = $('#' + fieldId);
-                            $.ajax({
-                                url: '<?= base_url('items') ?>/' + $('#editItemId').val() + '/get-data',
-                                type: 'GET',
-                                dataType: 'json',
-                                success: function(resp) {
-                                    if (resp.success) {
-                                        // Re-populate the appropriate dropdown
-                                        if (itemType === 'color') {
-                                            selectField.empty();
-                                            selectField.append('<option value="">Select</option>');
-                                            if (resp.colors) {
-                                                resp.colors.forEach(function(item) {
-                                                    selectField.append(`<option value="${item.id}">${item.color_name}</option>`);
-                                                });
-                                                selectField.val(response.data.id);
-                                            }
-                                        } else if (itemType === 'brand') {
-                                            selectField.empty();
-                                            selectField.append('<option value="">Select</option>');
-                                            if (resp.brands) {
-                                                resp.brands.forEach(function(item) {
-                                                    selectField.append(`<option value="${item.id}">${item.brand_name}</option>`);
-                                                });
-                                                selectField.val(response.data.id);
-                                            }
-                                        } else if (itemType === 'product_group') {
-                                            selectField.empty();
-                                            selectField.append('<option value="">Select</option>');
-                                            if (resp.productGroups) {
-                                                resp.productGroups.forEach(function(item) {
-                                                    selectField.append(`<option value="${item.id}">${item.group_name}</option>`);
-                                                });
-                                                selectField.val(response.data.id);
-                                            }
-                                        } else if (itemType === 'heels') {
-                                            selectField.empty();
-                                            selectField.append('<option value="">Select</option>');
-                                            if (resp.heels) {
-                                                resp.heels.forEach(function(item) {
-                                                    selectField.append(`<option value="${item.id}">${item.heel_name}</option>`);
-                                                });
-                                                selectField.val(response.data.id);
-                                            }
-                                        } else if (itemType === 'tags') {
-                                            selectField.empty();
-                                            selectField.append('<option value="">Select</option>');
-                                            if (resp.tags) {
-                                                resp.tags.forEach(function(item) {
-                                                    selectField.append(`<option value="${item.id}">${item.tag_name}</option>`);
-                                                });
-                                                selectField.val(response.data.id);
-                                            }
-                                        } else if (itemType === 'category') {
-                                            selectField.empty();
-                                            selectField.append('<option value="">Select</option>');
-                                            if (resp.categories) {
-                                                resp.categories.forEach(function(item) {
-                                                    selectField.append(`<option value="${item.id}">${item.category_name}</option>`);
-                                                });
-                                                selectField.val(response.data.id);
-                                            }
-                                        }
-                                    }
-                                }
-                            });
-
-                            // Close modal and reset
+                            const $select = (window.currentTargetSelect && window.currentTargetSelect.length)
+                                ? window.currentTargetSelect
+                                : null;
+                            if ($select) {
+                                const newOption = new Option(response.data.name, response.data.id, true, true);
+                                $select.append(newOption).val(response.data.id);
+                            }
                             bootstrap.Modal.getInstance(document.getElementById('addItemModal')).hide();
                             $('#newItemValue').val('');
-                            Swal.fire('Success', response.message, 'success');
+                            Swal.fire({ icon: 'success', title: 'Added!', text: response.message, confirmButtonColor: '#667eea', timer: 1500 });
                         } else {
                             Swal.fire('Error', response.message, 'error');
                         }
