@@ -10,6 +10,14 @@
         </div>
     </div>
 
+    <?php
+    // Friendly labels and hints for known setting keys
+    $settingMeta = [
+        'item_scan_type'  => ['label' => 'Scan Type',            'hint' => 'Code format used for item scanning'],
+        'sticker_printer' => ['label' => 'Sticker Printer Name', 'hint' => 'Default printer pre-filled when printing item stickers'],
+    ];
+    ?>
+
     <!-- Existing Settings -->
     <?php if (!empty($settings)): ?>
     <form action="<?= route_to('setting.update') ?>" method="post">
@@ -25,17 +33,24 @@
                 <table class="table table-hover mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th style="width:35%">Key</th>
+                            <th style="width:35%">Setting</th>
                             <th>Value</th>
                             <th style="width:80px" class="text-center">Action</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($settings as $i => $setting): ?>
+                        <?php foreach ($settings as $i => $setting):
+                            $meta = $settingMeta[$setting['setting_key']] ?? null;
+                        ?>
                         <tr>
                             <td class="align-middle">
                                 <input type="hidden" name="setting_key[]" value="<?= esc($setting['setting_key']) ?>">
-                                <code class="fs-6"><?= esc($setting['setting_key']) ?></code>
+                                <?php if ($meta): ?>
+                                    <span class="fw-semibold"><?= esc($meta['label']) ?></span><br>
+                                    <small class="text-muted"><?= esc($meta['hint']) ?></small>
+                                <?php else: ?>
+                                    <code class="fs-6"><?= esc($setting['setting_key']) ?></code>
+                                <?php endif; ?>
                             </td>
                             <td class="align-middle">
                                 <?php if ($setting['setting_key'] === 'item_scan_type'): ?>
@@ -43,6 +58,11 @@
                                         <option value="barcode" <?= ($setting['setting_value'] === 'barcode') ? 'selected' : '' ?>>Barcode</option>
                                         <option value="qrcode"  <?= ($setting['setting_value'] === 'qrcode')  ? 'selected' : '' ?>>QR Code</option>
                                     </select>
+                                <?php elseif ($setting['setting_key'] === 'sticker_printer'): ?>
+                                    <input type="text" class="form-control form-control-sm" name="setting_value[]"
+                                           value="<?= esc($setting['setting_value']) ?>"
+                                           placeholder="e.g. Thermal Printer, HP LaserJet..."
+                                           style="max-width:300px;">
                                 <?php else: ?>
                                     <input type="text" class="form-control form-control-sm" name="setting_value[]"
                                            value="<?= esc($setting['setting_value']) ?>" style="max-width:300px;">

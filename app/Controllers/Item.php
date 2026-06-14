@@ -63,7 +63,8 @@ class Item extends BaseController
             'articleOptions' => $articleOptions,
             'sizeOptions' => $sizeOptions,
             'user_name' => $session->get('user_name'),
-            'user_email' => $session->get('user_email')
+            'user_email' => $session->get('user_email'),
+            'default_printer' => $this->accessDB->getSettingByKey('sticker_printer') ?? '',
         ];
 
         return view('item/index', $data);
@@ -903,6 +904,53 @@ class Item extends BaseController
                 'message' => 'Error uploading image: ' . $e->getMessage()
             ]);
         }
+    }
+
+    public function printMultiple()
+    {
+        $session = session();
+        if (!$session->get('isLoggedIn')) {
+            return redirect()->route('login');
+        }
+
+        $idsParam = $this->request->getGet('ids');
+        if (empty($idsParam)) {
+            return redirect()->route('item.index')->with('error', 'No items selected');
+        }
+
+        $ids = array_values(array_filter(array_map('intval', explode(',', $idsParam))));
+        if (empty($ids)) {
+            return redirect()->route('item.index')->with('error', 'Invalid item IDs');
+        }
+
+        $getImageUrl = function($imageCode) {
+            if (empty($imageCode)) return null;
+            $uploadDir = FCPATH . 'uploads/images/';
+            foreach (['jpg', 'jpeg', 'png', 'gif', 'webp'] as $ext) {
+                if (file_exists($uploadDir . $imageCode . '.' . $ext)) {
+                    return base_url('uploads/images/' . $imageCode . '.' . $ext);
+                }
+            }
+            return null;
+        };
+
+        $items = [];
+        foreach ($ids as $id) {
+            $item = $this->accessDB->getItemById($id);
+            if ($item) {
+                $item['imageUrl'] = $getImageUrl($item['img_code'] ?? '');
+                $items[] = $item;
+            }
+        }
+
+        if (empty($items)) {
+            return redirect()->route('item.index')->with('error', 'Items not found');
+        }
+
+        return view('item/print_multiple', [
+            'items'     => $items,
+            'scan_type' => $this->accessDB->getSettingByKey('item_scan_type') ?? 'barcode',
+        ]);
     }
 
     public function printSticker($id)

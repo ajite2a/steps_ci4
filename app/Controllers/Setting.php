@@ -21,6 +21,16 @@ class Setting extends BaseController
             return redirect()->route('login');
         }
 
+        // Seed known settings with defaults if they don't exist yet
+        $knownDefaults = [
+            'sticker_printer' => '',
+        ];
+        foreach ($knownDefaults as $key => $default) {
+            if ($this->accessDB->getSettingByKey($key) === null) {
+                $this->accessDB->upsertSetting($key, $default);
+            }
+        }
+
         $data = [
             'settings'   => $this->accessDB->getAllSettings(),
             'user_name'  => $session->get('user_name'),

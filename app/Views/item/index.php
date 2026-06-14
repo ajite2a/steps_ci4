@@ -6,12 +6,31 @@
     <link href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css" rel="stylesheet">
     <!-- SweetAlert2 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.10/dist/sweetalert2.min.css" rel="stylesheet">
+    <style>
+        #filterCard {
+            position: sticky;
+            top: 56px; /* overridden by JS with actual navbar height */
+            z-index: 1019;
+            transition: box-shadow 0.2s ease;
+        }
+        #filterCard.is-stuck {
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12) !important;
+        }
+    </style>
 <?= $this->endSection() ?>
 
 <?php
-/**
- * Helper function to get image URL by checking all supported extensions
- */
+/** @var array  $items */
+/** @var array  $filters */
+/** @var array  $colors */
+/** @var array  $suppliers */
+/** @var array  $brands */
+/** @var array  $tags */
+/** @var array  $product_groups */
+/** @var array  $articleOptions */
+/** @var array  $sizeOptions */
+/** @var string $default_printer */
+
 $getImageUrl = function($imageCode) {
     if (empty($imageCode)) {
         return null;
@@ -40,7 +59,7 @@ $getImageUrl = function($imageCode) {
     <a href="<?= route_to('item.create') ?>" class="btn btn-gradient">+ Add Item</a>
 </div>
 
-<div class="card mb-4">
+<div class="card mb-4" id="filterCard">
     <div class="card-body">
         <form method="get" action="<?= route_to('item.index') ?>">
             <div class="row g-3">
@@ -174,10 +193,21 @@ $getImageUrl = function($imageCode) {
 <?php else: ?>
     <div class="card ">
         <div class="card-body">
+            <!-- Print toolbar -->
+            <div id="printToolbar" class="mb-3" style="display:none;">
+                <button type="button" class="btn btn-success" id="printSelectedBtn">
+                    <i class="fa-solid fa-print"></i> Print Selected (<span id="selectedCount">0</span>)
+                </button>
+                <button type="button" class="btn btn-outline-secondary ms-2" id="clearSelectionBtn">
+                    <i class="fa-solid fa-xmark"></i> Clear Selection
+                </button>
+            </div>
+
             <div class="table-responsive">
                 <table id="itemsTable" class="table table-hover align-middle">
                     <thead class="table-light">
                         <tr>
+                            <th style="width:40px;"><input type="checkbox" id="selectAll" title="Select All"></th>
                             <th>Image</th>
                             <th>Product Code</th>
                             <th>Product Name</th>
@@ -197,6 +227,7 @@ $getImageUrl = function($imageCode) {
                                 $createdDate = !empty($item['created_at']) ? date('d-M-Y', strtotime($item['created_at'])) : '-';
                             ?>
                             <tr>
+                                <td><input type="checkbox" class="item-checkbox" value="<?= $item['id'] ?>"></td>
                                 <td>
                                     <?php if (!empty($imageUrl)): ?>
                                         <img src="<?= $imageUrl ?>" 
@@ -464,6 +495,32 @@ $getImageUrl = function($imageCode) {
     </div>
 </div>
 
+<!-- Print Selected Modal -->
+<div class="modal fade" id="printModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fa-solid fa-print me-2"></i>Print Selected Items</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted mb-3"><span id="printItemCount">0</span> item(s) selected for printing.</p>
+                <div class="mb-3">
+                    <label for="printerName" class="form-label fw-semibold">Printer Name</label>
+                    <input type="text" class="form-control" id="printerName" placeholder="e.g. Thermal Printer, HP LaserJet...">
+                    <div class="form-text">Enter the printer you want to use, then confirm your printer in the OS print dialog.</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" id="confirmPrintBtn">
+                    <i class="fa-solid fa-print me-1"></i> Print
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <?= $this->endSection() ?>
 
 <?= $this->section('js') ?>
@@ -475,6 +532,8 @@ $getImageUrl = function($imageCode) {
     <!-- SweetAlert2 JS -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.10/dist/sweetalert2.all.min.js"></script>
     <script>
+        const defaultPrinterName = '<?= esc($default_printer ?? '') ?>';
+
         // Function to show image in modal
         window.showImageModal = function(imagePath, productName) {
             $('#imageModalTitle').text(productName);
@@ -488,21 +547,69 @@ $getImageUrl = function($imageCode) {
                     responsive: true,
                     pageLength: 10,
                     lengthMenu: [5, 10, 25, 50],
-                    order: [[1, 'asc']],
+                    order: [[2, 'asc']],
                     columnDefs: [
-                        {
-                            targets: -1,
-                            orderable: false,
-                            searchable: false
-                        },
-                        {
-                            targets: 0,
-                            orderable: false,
-                            searchable: false
-                        }
+                        { targets: 0,  orderable: false, searchable: false },
+                        { targets: 1,  orderable: false, searchable: false },
+                        { targets: -1, orderable: false, searchable: false }
                     ]
                 });
             }
+
+            // ── Checkbox / print selection logic ──
+            function updatePrintToolbar() {
+                const count = $('.item-checkbox:checked').length;
+                $('#selectedCount').text(count);
+                if (count > 0) {
+                    $('#printToolbar').show();
+                } else {
+                    $('#printToolbar').hide();
+                }
+            }
+
+            // Select-all in header
+            $(document).on('change', '#selectAll', function() {
+                $('.item-checkbox').prop('checked', this.checked);
+                updatePrintToolbar();
+            });
+
+            // Individual checkbox
+            $(document).on('change', '.item-checkbox', function() {
+                const total = $('.item-checkbox').length;
+                const checked = $('.item-checkbox:checked').length;
+                $('#selectAll').prop('indeterminate', checked > 0 && checked < total);
+                $('#selectAll').prop('checked', checked === total);
+                updatePrintToolbar();
+            });
+
+            // Clear selection
+            $('#clearSelectionBtn').on('click', function() {
+                $('.item-checkbox, #selectAll').prop('checked', false);
+                $('#selectAll').prop('indeterminate', false);
+                updatePrintToolbar();
+            });
+
+            // Open print modal
+            $('#printSelectedBtn').on('click', function() {
+                const count = $('.item-checkbox:checked').length;
+                $('#printItemCount').text(count);
+                $('#printerName').val(defaultPrinterName);
+                const modal = new bootstrap.Modal(document.getElementById('printModal'));
+                modal.show();
+            });
+
+            // Confirm print — open combined sticker page
+            $('#confirmPrintBtn').on('click', function() {
+                const ids = $('.item-checkbox:checked').map(function() {
+                    return $(this).val();
+                }).get().join(',');
+
+                if (!ids) return;
+
+                const printUrl = '<?= base_url('items/print-multiple') ?>?ids=' + ids;
+                window.open(printUrl, '_blank');
+                bootstrap.Modal.getInstance(document.getElementById('printModal')).hide();
+            });
 
             // Handle edit button click
             $(document).on('click', '.edit-item', function(e) {
@@ -947,5 +1054,28 @@ $getImageUrl = function($imageCode) {
                 }
             });
         };
+
+        // Sticky filter — pin just below the navbar
+        (function () {
+            const nav  = document.querySelector('.navbar.sticky-top');
+            const card = document.getElementById('filterCard');
+            if (!nav || !card) return;
+
+            function updateTop() {
+                card.style.top = nav.offsetHeight + 'px';
+            }
+            updateTop();
+            window.addEventListener('resize', updateTop);
+
+            const observer = new IntersectionObserver(
+                ([entry]) => card.classList.toggle('is-stuck', !entry.isIntersecting),
+                { threshold: 0, rootMargin: '-' + (nav.offsetHeight + 1) + 'px 0px 0px 0px' }
+            );
+            // Sentinel: a zero-height div placed just above the filter card
+            const sentinel = document.createElement('div');
+            sentinel.style.cssText = 'height:1px;margin-bottom:-1px;';
+            card.parentNode.insertBefore(sentinel, card);
+            observer.observe(sentinel);
+        })();
     </script>
 <?= $this->endSection() ?>

@@ -44,6 +44,7 @@ $routes->get('items', 'Item::index', ['as' => 'item.index']);
 $routes->get('items/create', 'Item::create', ['as' => 'item.create']);
 $routes->post('items/store', 'Item::store', ['as' => 'item.store']);
 $routes->get('items/(:num)/print-sticker', 'Item::printSticker/$1', ['as' => 'item.printSticker']);
+$routes->get('items/print-multiple', 'Item::printMultiple', ['as' => 'item.printMultiple']);
 $routes->get('items/(:num)/edit', 'Item::edit/$1', ['as' => 'item.edit']);
 $routes->post('items/(:num)/update', 'Item::update/$1', ['as' => 'item.update']);
 $routes->post('items/(:num)/delete', 'Item::delete/$1', ['as' => 'item.delete']);
