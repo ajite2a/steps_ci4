@@ -755,7 +755,26 @@ class AccessDB
             $gst, $mrp, $display_price, $purchase_code, $from_size, $img_code
         ]);
         $this->freeStmt($stmt);
-        return $res;
+
+        if (!$res) {
+            return false;
+        }
+
+        // ODBC doesn't support lastInsertId() — fetch by unique product_code
+        $stmt2 = $this->pdo->prepare("SELECT id FROM items WHERE product_code = ?");
+        $stmt2->execute([$product_code]);
+        $row = $stmt2->fetch(\PDO::FETCH_ASSOC);
+        $this->freeStmt($stmt2);
+        return $row ? (int) $row['id'] : false;
+    }
+
+    public function logChange(string $table, int $recordId, string $changeType): void
+    {
+        $stmt = $this->pdo->prepare(
+            "INSERT INTO change_log (table_name, record_id, change_type, synced, changed_at) VALUES (?, ?, ?, 0, NOW())"
+        );
+        $stmt->execute([$table, $recordId, $changeType]);
+        $this->freeStmt($stmt);
     }
 
     public function updateItem(
@@ -872,6 +891,46 @@ class AccessDB
         $res = $stmt->execute([$id]);
         $this->freeStmt($stmt);
         return $res;
+    }
+
+    // ===== CHANGE LOG / SYNC METHODS =====
+
+    public function getPendingChangeLogs()
+    {
+        $stmt = $this->pdo->query("SELECT * FROM change_log WHERE synced = 0 ORDER BY changed_at DESC");
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $this->freeStmt($stmt);
+        return $rows;
+    }
+
+    public function getAllChangeLogs()
+    {
+        $stmt = $this->pdo->query("SELECT * FROM change_log ORDER BY changed_at DESC");
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $this->freeStmt($stmt);
+        return $rows;
+    }
+
+    public function markChangeLogSynced(int $id): bool
+    {
+        $stmt = $this->pdo->prepare("UPDATE change_log SET synced = 1 WHERE id = ?");
+        $res = $stmt->execute([$id]);
+        $this->freeStmt($stmt);
+        return (bool) $res;
+    }
+
+    public function markAllChangeLogsSynced(): bool
+    {
+        $res = $this->pdo->exec("UPDATE change_log SET synced = 1 WHERE synced = 0");
+        return $res !== false;
+    }
+
+    public function getPendingChangeLogCount(): int
+    {
+        $stmt = $this->pdo->query("SELECT COUNT(*) AS total FROM change_log WHERE synced = 0");
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $this->freeStmt($stmt);
+        return (int) ($row['total'] ?? 0);
     }
 
     /**

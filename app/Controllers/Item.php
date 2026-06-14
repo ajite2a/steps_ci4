@@ -258,6 +258,7 @@ class Item extends BaseController
 
                         if ($result) {
                             $productsCreated++;
+                            $this->accessDB->logChange('items', $result, 'INSERT');
                         }
                     }
                 }
@@ -437,6 +438,9 @@ class Item extends BaseController
                     $from_size,
                     $img_code
                 );
+                if ($result) {
+                    $this->accessDB->logChange('items', (int) $id, 'UPDATE');
+                }
             }
 
             if ($result) {
@@ -475,6 +479,7 @@ class Item extends BaseController
             $result = $this->accessDB->deleteItem($id);
 
             if ($result) {
+                $this->accessDB->logChange('items', (int) $id, 'DELETE');
                 $session->setFlashdata('success', 'Item deleted successfully');
             } else {
                 $session->setFlashdata('error', 'Failed to delete item');

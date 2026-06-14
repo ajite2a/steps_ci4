@@ -54,6 +54,11 @@ $routes->post('item/checkArticleExists', 'Item::checkArticleExists', ['as' => 'i
 $routes->post('item/checkImageExists', 'Item::checkImageExists', ['as' => 'item.checkImageExists']);
 $routes->post('item/uploadVariantImage', 'Item::uploadVariantImage', ['as' => 'item.uploadVariantImage']);
 
+// Sync routes
+$routes->get('sync', 'Sync::index', ['as' => 'sync.index']);
+$routes->post('sync/(:num)/mark-synced', 'Sync::markSynced/$1', ['as' => 'sync.markSynced']);
+$routes->post('sync/mark-all-synced', 'Sync::markAllSynced', ['as' => 'sync.markAllSynced']);
+
 // Settings routes
 $routes->get('settings', 'Setting::index', ['as' => 'setting.index']);
 $routes->post('settings/store', 'Setting::store', ['as' => 'setting.store']);
